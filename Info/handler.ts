@@ -15,7 +15,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as packageJson from "../package.json";
 
 import { envConfig, IConfig } from "../utils/config";
-import { ApplicationInfo } from "../generated/definitions/ApplicationInfo";
+import { ApplicationInfo } from "../generated/definitions/internal/ApplicationInfo";
 
 type InfoHandler = () => Promise<
   IResponseSuccessJson<ApplicationInfo> | IResponseErrorInternal
