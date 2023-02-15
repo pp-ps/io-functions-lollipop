@@ -51,7 +51,7 @@ stages:
             [[ -z $(git status --porcelain) ]] && exit 0 || exit 1
           displayName: 'Check OpenAPI spec is up-to-date'
         - script: |
-            npx oval validate -p openapi/index.yaml
+            npx swagger-cli validate -p openapi/internal.yaml
           displayName: 'Validate API specification'
 
   # B) Run unit tests if there is a push or pull request on any branch.
