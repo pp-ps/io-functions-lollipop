@@ -23,8 +23,6 @@ export const IConfig = t.interface({
   COSMOSDB_NAME: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
 
-  QueueStorageConnection: NonEmptyString,
-
   isProduction: t.boolean
 });
 
