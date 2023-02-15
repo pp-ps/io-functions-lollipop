@@ -4,33 +4,34 @@ info:
   title: IO Lollipop Function API
   x-logo:
     url: https://io.italia.it/assets/img/io-logo-blue.svg
-  description: >
+  description: |
     Documentation of the IO Lollipop Function API here.
-host: api.cd.italia.it
-basePath: "/api/v1"
-schemes:
-  - https
+servers: 
+  - url: https://io-p-lollipop-fn.azurewebsites.net/api/v1
 security:
-  - SubscriptionKey: []
+  - ApiKeyAuth: []
 paths:
   /info:
     get:
       operationId: getApplicationInfo
       summary: Retrieve current application info
       description: >-
-        Retrieve current application info to confirm the application is up and able to serve requests.
-        Errors mean the application is broken.
+        Retrieve current application info to confirm the application is up and
+        able to serve requests. Errors mean the application is broken.
       responses:
-        "200":
+        '200':
           description: Success
-          schema:
-            $ref: "#/components/schemas/ApplicationInfo"
-        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationInfo'
+        '500':
           description: Generic server error
-          schema:
-            $ref: "#/components/schemas/ProblemJson"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemJson'
       security: []
-  
   /pubkeys:
     post:
       operationId: reservePubKey
@@ -161,6 +162,11 @@ paths:
                 $ref: "#/components/schemas/ProblemJson"            
 
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Functions-Key
   schemas:
     ApplicationInfo:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/ApplicationInfo"
@@ -219,12 +225,12 @@ components:
           $ref: "#/components/schemas/JwkPubKey"
         version:
           type: number
-          min: 0
+          minimum: 0
         status:
           $ref: "#/components/schemas/PubKeyStatus"
         ttl:
           type: number
-          min: 0
+          minimum: 0
       required:
         - assertion_ref
         - pub_key
@@ -292,10 +298,3 @@ components:
               minLength: 1
           required:
             - lc_authentication_bearer
-
-
-securityDefinitions:
-  SubscriptionKey:
-    type: apiKey
-    name: X-Functions-Key
-    in: header
