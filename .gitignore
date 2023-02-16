@@ -60,3 +60,5 @@ generated
 azure-functions-core-tools
 
 .history
+
+docker-compose.override.yml
