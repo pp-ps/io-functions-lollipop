@@ -79,8 +79,6 @@ components:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRefSha512"
     AssertionRef:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRef"
-    OperationId:
-      $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/OperationId"
 
     SamlUserInfo:
       type: object
