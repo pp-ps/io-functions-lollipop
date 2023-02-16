@@ -1,11 +1,9 @@
 import * as E from "fp-ts/lib/Either";
-
 import * as tk from "timekeeper";
 
 import { Container } from "@azure/cosmos";
 import { AssertionRef } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionRef";
 import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionType";
-import { Timestamp } from "@pagopa/io-functions-commons/dist/generated/definitions/Timestamp";
 import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -33,17 +31,17 @@ const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
 };
 
 const aPendingPopDocument: PendingPopDocument = {
-  pubKey: aPubKey,
   assertionRef: anAssertionRef,
+  pubKey: aPubKey,
   status: PopDocumentStatusEnum.PENDING
 };
 
 const aPopDocument: PopDocument = {
-  fiscalCode: aFiscalCode,
-  assertionRef: anAssertionRef,
   assertionFileName: anAssertionFileName,
+  assertionRef: anAssertionRef,
   assertionType: AssertionTypeEnum.OIDC,
-  expiredAt: new Date() as Timestamp,
+  expiredAt: new Date(),
+  fiscalCode: aFiscalCode,
   pubKey: aPubKey,
   status: PopDocumentStatusEnum.VALID
 };
@@ -52,8 +50,8 @@ const aRetrievedPopDocument: RetrievedPopDocument = {
   id: `${aPopDocument.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
   ...aCosmosResourceMetadata,
   ...aPopDocument,
-  version: 0 as NonNegativeInteger,
-  ttl: TTL_VALUE_AFTER_UPDATE // 2y
+  ttl: TTL_VALUE_AFTER_UPDATE, // 2y
+  version: 0 as NonNegativeInteger
 };
 
 const mockCreateItem = jest.fn();
@@ -67,10 +65,10 @@ mockFetchAll.mockImplementation(async () => ({
 const containerMock = ({
   items: {
     create: mockCreateItem,
-    upsert: mockUpsert,
     query: jest.fn(() => ({
       fetchAll: mockFetchAll
-    }))
+    })),
+    upsert: mockUpsert
   }
 } as unknown) as Container;
 
@@ -107,8 +105,9 @@ describe("create", () => {
 
     expect(mockCreateItem).toHaveBeenCalled();
     expect(E.isLeft(result)).toBeTruthy();
-    if (E.isLeft(result))
+    if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_ERROR_RESPONSE");
+    }
   });
 });
 
@@ -122,8 +121,9 @@ describe("upsert", () => {
     const model = new LolliPOPKeysModel(containerMock);
     const result = await model.upsert(aPopDocument)();
     expect(E.isLeft(result)).toBeTruthy();
-    if (E.isLeft(result))
+    if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_DECODING_ERROR");
+    }
     expect(mockCreateItem).not.toHaveBeenCalled();
   });
 
@@ -151,6 +151,7 @@ describe("upsert", () => {
     expect(mockCreateItem).toHaveBeenCalledWith(
       expect.objectContaining({
         ttl:
+          // eslint
           aRetrievedPopDocument._ts +
           aMockedTtl -
           mockedNowTime.getTime() / 1000

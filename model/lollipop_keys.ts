@@ -58,29 +58,29 @@ export const AssertionFileName = PatternString(
 export type AssertionFileName = t.TypeOf<typeof AssertionFileName>;
 
 export const PendingPopDocument = t.interface({
-  pubKey: NonEmptyString,
   assertionRef: AssertionRef,
+  pubKey: NonEmptyString,
   status: t.literal(PopDocumentStatusEnum.PENDING)
 });
 export type PendingPopDocument = t.TypeOf<typeof PendingPopDocument>;
 
 export const NotPendingPopDocument = t.interface({
-  pubKey: NonEmptyString,
+  assertionFileName: AssertionFileName,
   assertionRef: AssertionRef,
+  assertionType: AssertionType,
+  expiredAt: Timestamp,
+  fiscalCode: FiscalCode,
+  pubKey: NonEmptyString,
   status: t.union([
     t.literal(PopDocumentStatusEnum.VALID),
     t.literal(PopDocumentStatusEnum.REVOKED)
-  ]),
-  fiscalCode: FiscalCode,
-  assertionFileName: AssertionFileName,
-  assertionType: AssertionType,
-  expiredAt: Timestamp
+  ])
 });
 export type NotPendingPopDocument = t.TypeOf<typeof NotPendingPopDocument>;
 
 export const PopDocumentBase = t.interface({
-  pubKey: NonEmptyString,
-  assertionRef: AssertionRef
+  assertionRef: AssertionRef,
+  pubKey: NonEmptyString
 });
 export type PopDocumentBase = t.TypeOf<typeof PopDocumentBase>;
 
@@ -117,7 +117,10 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
   /*
    * Reserve the key by creating a new document with version 0 with the ttl setted for the time needed,
    * */
-  public create(popDocument: PopDocument, option?: RequestOptions) {
+  public create(
+    popDocument: PopDocument,
+    option?: RequestOptions
+  ): TE.TaskEither<CosmosErrors, RetrievedPopDocument> {
     return pipe(
       this.getTtlValue(popDocument),
       // super.create never returns 409 error but a generic CosmosErrorResponse with io-functions-commons v26.8.1
@@ -138,6 +141,30 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
     );
   }
 
+  /**
+   * This method is disabled to avoid wrong use cases. Use upsert instead.
+   *
+   * @deprecated
+   * */
+  public update(_: RetrievedPopDocument): TE.TaskEither<CosmosErrors, never> {
+    return TE.left(
+      toCosmosErrorResponse(new Error("Cannot update a lollipop document"))
+    );
+  }
+
+  /**
+   * This method is disabled to avoid wrong use cases.
+   *
+   * @deprecated Use updateKeys instead.
+   * */
+  public updateTTLForAllVersions(): TE.TaskEither<CosmosErrors, never> {
+    return TE.left(
+      toCosmosErrorResponse(
+        new Error("Cannot update tll for old versions in a lollipop document")
+      )
+    );
+  }
+
   private getTtlValue(
     popDocument: PopDocument
   ): TE.TaskEither<CosmosErrors, NonNegativeInteger> {
@@ -151,7 +178,8 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
             lastPop.status === PopDocumentStatusEnum.PENDING ||
             (lastPop.ttl ?? 0) < 1
               ? TTL_VALUE_AFTER_UPDATE
-              : ((lastPop._ts +
+              : // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, no-underscore-dangle
+                ((lastPop._ts +
                   (lastPop.ttl ?? 0) -
                   Math.floor(
                     new Date().getTime() / 1000
@@ -163,30 +191,6 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
               : TTL_VALUE_AFTER_UPDATE
           )
         )
-      )
-    );
-  }
-
-  /**
-   * This method is disabled to avoid wrong use cases. Use upsert instead.
-   *
-   * @deprecated
-   * */
-  public update(_: RetrievedPopDocument) {
-    return TE.left(
-      toCosmosErrorResponse(new Error("Cannot update a lollipop document"))
-    );
-  }
-
-  /**
-   * This method is disabled to avoid wrong use cases.
-   *
-   * @deprecated Use updateKeys instead.
-   * */
-  public updateTTLForAllVersions() {
-    return TE.left(
-      toCosmosErrorResponse(
-        new Error("Cannot update tll for old versions in a lollipop document")
       )
     );
   }
