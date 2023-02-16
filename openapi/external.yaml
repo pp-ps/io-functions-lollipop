@@ -11,7 +11,7 @@ servers:
   - url: https://api.pagopa.it/api/v1/lollipop
 security:
   - ApiKeyAuth: []
-  - BearerAuth: []
+  - LollipopAuth: []
 paths:
   /assertions/{assertion_ref}:
     get:
@@ -29,7 +29,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LCAssertion'
+                $ref: '#/components/schemas/LCUserInfo'
         '400':
           description: Bad Request
           content:
@@ -46,12 +46,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemJson'
-        '409':
-          description: Assertion is not valid yet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemJson'
+        '410':
+          description: Assertion gone
         '500':
           description: Internal Server Error
           content:
@@ -64,10 +60,11 @@ components:
       type: apiKey
       in: header
       name: Ocp-Apim-Subscription-Key
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    LollipopAuth:
+      type: apiKey
+      in: header
+      description: A lollipop's JWT auth custom header as `Bearer <JWT Token>`
+      name: x-pagopa-lollipop-auth
   schemas:
     ProblemJson:
       type: object
@@ -138,25 +135,30 @@ components:
     OperationId:
       type: string
       minLength: 1
-    SamlAssertion:
+    SamlUserInfo:
       type: object
       properties:
-        assertion_xml:
+        response_xml:
           type: string
-          description: A string representation of a signed SPID/CIE assertion
+          description: A string representation of a signed SPID/CIE response
           minLength: 1
       required:
-        - assertion_xml
-    OidcClaim:
+        - response_xml
+    OidcSignedJwt:
       type: string
-      description: A base64 representation of a signed SPID/CIE OIDC claim
+      description: A JWT representation of a signed SPID/CIE OIDC Idp
       minLength: 1
-    OidcAssertion:
-      type: array
-      items:
-        $ref: '#/components/schemas/OidcClaim'
-      minItems: 1
-    LCAssertion:
+    OidcUserInfo:
+      type: object
+      properties:
+        id_token:
+          $ref: '#/components/schemas/OidcSignedJwt'
+        claims_token:
+          $ref: '#/components/schemas/OidcSignedJwt'
+      required:
+        - id_token
+        - claims_token
+    LCUserInfo:
       oneOf:
-        - $ref: '#/components/schemas/SamlAssertion'
-        - $ref: '#/components/schemas/OidcAssertion'
+        - $ref: '#/components/schemas/SamlUserInfo'
+        - $ref: '#/components/schemas/OidcUserInfo'
