@@ -12,11 +12,11 @@ import {
   LolliPOPKeysModel,
   PendingPopDocument,
   LolliPopPubKeys,
-  PopDocumentStatusEnum,
   RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
   TTL_VALUE_FOR_RESERVATION
 } from "../lollipop_keys";
+import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 
 const aFiscalCode = "RLDBSV36A78Y792X" as FiscalCode;
 const anAssertionRef = "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c" as AssertionRef;
@@ -33,7 +33,7 @@ const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
 const aPendingPopDocument: PendingPopDocument = {
   assertionRef: anAssertionRef,
   pubKey: aPubKey,
-  status: PopDocumentStatusEnum.PENDING
+  status: PubKeyStatusEnum.PENDING
 };
 
 const aPopDocument: LolliPopPubKeys = {
@@ -43,7 +43,7 @@ const aPopDocument: LolliPopPubKeys = {
   expiredAt: new Date(),
   fiscalCode: aFiscalCode,
   pubKey: aPubKey,
-  status: PopDocumentStatusEnum.VALID
+  status: PubKeyStatusEnum.VALID
 };
 
 const aRetrievedPopDocument: RetrievedLolliPopPubKeys = {
@@ -130,7 +130,7 @@ describe("upsert", () => {
   it("GIVEN a working PopModel instance and a pending popDocument, WHEN upsert is called, THEN super.upsert should be called with ttl equals to 2y", async () => {
     mockFetchAll.mockImplementationOnce(async () => ({
       resources: [
-        { ...aRetrievedPopDocument, status: PopDocumentStatusEnum.PENDING }
+        { ...aRetrievedPopDocument, status: PubKeyStatusEnum.PENDING }
       ]
     }));
     const model = new LolliPOPKeysModel(containerMock);

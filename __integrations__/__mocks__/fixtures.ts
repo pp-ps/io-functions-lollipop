@@ -1,0 +1,97 @@
+import { CosmosClient, Database } from "@azure/cosmos";
+
+import * as TE from "fp-ts/lib/TaskEither";
+import * as RA from "fp-ts/ReadonlyArray";
+import { pipe } from "fp-ts/lib/function";
+
+import * as MessageStatusCollection from "@pagopa/io-functions-commons/dist/src/models/message_status";
+
+import { log } from "../utils/logger";
+import {
+  createContainer as createCollection,
+  createDatabase,
+  deleteContainer
+} from "./utils/cosmos";
+import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { Container } from "@azure/cosmos";
+
+/**
+ *
+ * @param database
+ * @returns
+ */
+// TODO
+// export const createAllCollections = (
+//   database: Database
+// ): TE.TaskEither<CosmosErrors, readonly Container[]> =>
+//   pipe(
+//     [
+//       //TODO: Replace
+//       // message-status
+//       createCollection(
+//         database,
+//         MessageStatusCollection.MESSAGE_STATUS_COLLECTION_NAME,
+//         MessageStatusCollection.MESSAGE_STATUS_MODEL_PK_FIELD
+//       )
+//     ],
+//     RA.sequence(TE.ApplicativePar)
+//   );
+
+/**
+ * Create DB
+ */
+export const deleteAllCollections = (
+  database: Database
+): TE.TaskEither<CosmosErrors, readonly Container[]> => {
+  log("deleting CosmosDB");
+
+  return pipe(
+    database,
+    TE.of,
+    TE.bindTo("db"),
+    TE.bind("collectionNames", ({ db }) =>
+      pipe(
+        TE.tryCatch(
+          () => db.containers.readAll().fetchAll(),
+          toCosmosErrorResponse
+        ),
+        TE.map(r => r.resources),
+        TE.map(RA.map(r => r.id))
+      )
+    ),
+    TE.chain(({ db, collectionNames }) =>
+      pipe(
+        collectionNames,
+        RA.map(r => deleteContainer(db, r)),
+        RA.sequence(TE.ApplicativePar)
+      )
+    ),
+    TE.map(collections => {
+      log("Deleted", collections.length, "collections");
+      return collections;
+    }),
+    TE.mapLeft(err => {
+      log("Error", err);
+      return err;
+    })
+  );
+};
+
+/**
+ * Create DB and collections
+ */
+export const createCosmosDbAndCollections = (
+  client: CosmosClient,
+  cosmosDbName: string
+): TE.TaskEither<CosmosErrors, Database> =>
+  pipe(
+    createDatabase(client, cosmosDbName),
+    // Delete all collections, in case they already exist
+    TE.chainFirst(deleteAllCollections),
+    // TE.chainFirst(createAllCollections),
+    TE.mapLeft(err => {
+      log("Error", err);
+      return err;
+    })
+  );

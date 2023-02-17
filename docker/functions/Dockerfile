@@ -1,10 +1,10 @@
-FROM node:18.13.0-alpine
+FROM functions-node-18
 
-WORKDIR /usr/src/app
+COPY . /usr/src/app
 
-RUN npm i -g azure-functions-core-tools@4 --unsafe-perm true
+RUN func extensions install
 
-ENV AzureWebJobsScriptRoot=/usr/src/app \
-  AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+RUN yarn install --frozen-lockfile
+RUN yarn build
 
 CMD ["func", "start", "--javascript"]

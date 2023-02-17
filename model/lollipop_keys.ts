@@ -22,7 +22,7 @@ import {
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { flow, pipe } from "fp-ts/lib/function";
-import { enumType } from "@pagopa/ts-commons/lib/types";
+import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
 const LOLLIPOPKEYS_MODEL_PK_FIELD = "assertionRef" as const;
 const LOLLIPOPKEYS_MODEL_ID_FIELD = LOLLIPOPKEYS_MODEL_PK_FIELD;
@@ -41,16 +41,6 @@ export const TTL_VALUE_AFTER_UPDATE = (60 *
   365 *
   2) as NonNegativeInteger; // 2y
 
-export enum PopDocumentStatusEnum {
-  "PENDING" = "PENDING",
-  "VALID" = "VALID",
-  "REVOKED" = "REVOKED"
-}
-export const PopDocumentStatus = enumType<PopDocumentStatusEnum>(
-  PopDocumentStatusEnum,
-  "PopDocumentStatus"
-);
-
 // fiscal code - AssertionRefsha256 | AssertionRefSha384 | AssertionRefSha512
 export const AssertionFileName = PatternString(
   "^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]-(sha256-[A-Za-z0-9-_=]{1,44}|sha384-[A-Za-z0-9-_=]{1,66}|sha512-[A-Za-z0-9-_=]{1,88})$"
@@ -60,7 +50,7 @@ export type AssertionFileName = t.TypeOf<typeof AssertionFileName>;
 export const PendingPopDocument = t.interface({
   assertionRef: AssertionRef,
   pubKey: NonEmptyString,
-  status: t.literal(PopDocumentStatusEnum.PENDING)
+  status: t.literal(PubKeyStatusEnum.PENDING)
 });
 export type PendingPopDocument = t.TypeOf<typeof PendingPopDocument>;
 
@@ -72,8 +62,8 @@ export const NotPendingPopDocument = t.interface({
   fiscalCode: FiscalCode,
   pubKey: NonEmptyString,
   status: t.union([
-    t.literal(PopDocumentStatusEnum.VALID),
-    t.literal(PopDocumentStatusEnum.REVOKED)
+    t.literal(PubKeyStatusEnum.VALID),
+    t.literal(PubKeyStatusEnum.REVOKED)
   ])
 });
 export type NotPendingPopDocument = t.TypeOf<typeof NotPendingPopDocument>;
@@ -182,7 +172,7 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
           // if the last version was PENDING the new ttl is setted to TTL_VALUE_AFTER_UPDATE
           // if the last version ttl is missing then the new ttl is setted to TTL_VALUE_AFTER_UPDATE to avoid setting the ttl to a negative value
           O.map(lastPop =>
-            lastPop.status === PopDocumentStatusEnum.PENDING ||
+            lastPop.status === PubKeyStatusEnum.PENDING ||
             (lastPop.ttl ?? 0) < 1
               ? TTL_VALUE_AFTER_UPDATE
               : // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, no-underscore-dangle
@@ -193,7 +183,7 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
                   )) as NonNegativeInteger)
           ),
           O.getOrElseW(() =>
-            popDocument.status === PopDocumentStatusEnum.PENDING
+            popDocument.status === PubKeyStatusEnum.PENDING
               ? TTL_VALUE_FOR_RESERVATION
               : TTL_VALUE_AFTER_UPDATE
           )
