@@ -64,12 +64,6 @@ export const NotPendingPopDocument = t.interface({
 });
 export type NotPendingPopDocument = t.TypeOf<typeof NotPendingPopDocument>;
 
-export const PopDocumentBase = t.interface({
-  assertionRef: AssertionRef,
-  pubKey: NonEmptyString
-});
-export type PopDocumentBase = t.TypeOf<typeof PopDocumentBase>;
-
 // T type
 export const LolliPopPubKeys = t.union([
   NotPendingPopDocument,
