@@ -87,7 +87,7 @@ afterAll(() => {
 });
 
 describe("create", () => {
-  it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN create is called, THEN upsert should be called with ttl equals to 2y", async () => {
+  it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN create is called, THEN upsert should be called with ttl equals to 15 minutes", async () => {
     const model = new LolliPOPKeysModel(containerMock);
     await model.create(aPendingLolliPopPubKeys)();
     expect(mockCreateItem).toHaveBeenCalledWith(
