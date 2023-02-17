@@ -54,9 +54,6 @@ describe("getValidateJWT - Success", () => {
       const result = await getValidateAuthJWT(aConfigWithPrimaryKey)(
         token.right
       )();
-
-      console.log(result, Date.now());
-
       checkDecodedToken(result);
     } else {
       fail("Invalid token");
@@ -82,8 +79,6 @@ describe("getValidateJWT - Failures", () => {
       expect(result).toMatchObject(
         E.left(E.toError("Invalid AuthJWT payload"))
       );
-
-      console.log(result, Date.now());
     } else {
       fail("Invalid token");
     }
