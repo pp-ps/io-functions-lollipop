@@ -96,7 +96,7 @@ describe("create", () => {
     );
   });
 
-  it("GIVEN a working PopModel instance should fail with a COSMOS_ERROR_RESPONSE if a documnet with same modelId exists", async () => {
+  it("GIVEN a working PopModel instance should fail with a COSMOS_ERROR_RESPONSE if a document with same modelId exists", async () => {
     mockFetchAll.mockImplementationOnce(async () => ({
       resources: [aRetrievedPopDocument]
     }));
@@ -141,7 +141,7 @@ describe("upsert", () => {
     );
   });
 
-  it("If exist a previous version with a ttl, the new version should have a ttl with the remaining time to reach the previous one", async () => {
+  it("GIVEN a previous version with a ttl, the new version should have a ttl with the remaining time to reach the previous one", async () => {
     const aMockedTtl = TTL_VALUE_FOR_RESERVATION;
     mockFetchAll.mockImplementationOnce(async () => ({
       resources: [{ ...aRetrievedPopDocument, ttl: aMockedTtl }]
