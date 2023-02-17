@@ -40,8 +40,6 @@ describe("getValidateJWT - Success", () => {
         aPrimaryKey.publicKey
       )(token.right)();
 
-      console.log(result, Date.now());
-
       checkDecodedToken(result);
     } else {
       fail("Invalid token");
@@ -200,6 +198,4 @@ const checkDecodedToken = async (result: E.Either<Error, jwt.JwtPayload>) => {
 
   const decoded = (result as E.Right<jwt.JwtPayload>).right;
   expect((decoded.exp ?? 0) - (decoded.iat ?? 0)).toEqual(aTtl);
-
-  console.log("QUI", result);
 };
