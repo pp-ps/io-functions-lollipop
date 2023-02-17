@@ -33,13 +33,9 @@ export const Ttl = t.interface({
 export type Ttl = t.TypeOf<typeof Ttl>;
 
 // The time for which we want to reserve a key during login process (in seconds)
-export const TTL_VALUE_FOR_RESERVATION = (60 * 15) as NonNegativeInteger; // 15m
+export const TTL_VALUE_FOR_RESERVATION = 900 as NonNegativeInteger; // 15m
 // The time for which we want to keep the popDocument
-export const TTL_VALUE_AFTER_UPDATE = (60 *
-  60 *
-  24 *
-  365 *
-  2) as NonNegativeInteger; // 2y
+export const TTL_VALUE_AFTER_UPDATE = 63072000 as NonNegativeInteger; // 2y
 
 // fiscal code - AssertionRefsha256 | AssertionRefSha384 | AssertionRefSha512
 export const AssertionFileName = PatternString(
