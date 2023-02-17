@@ -85,31 +85,36 @@ export const PopDocumentBase = t.interface({
 export type PopDocumentBase = t.TypeOf<typeof PopDocumentBase>;
 
 // T type
-export const PopDocument = t.union([NotPendingPopDocument, PendingPopDocument]);
-export type PopDocument = t.TypeOf<typeof PopDocument>;
+export const LolliPopPubKeys = t.union([
+  NotPendingPopDocument,
+  PendingPopDocument
+]);
+export type LolliPopPubKeys = t.TypeOf<typeof LolliPopPubKeys>;
 
 // TN type
-export const NewPopDocument = t.intersection([PopDocument, Ttl]);
-export type NewPopDocument = t.TypeOf<typeof NewPopDocument>;
+export const NewLolliPopPubKeys = t.intersection([LolliPopPubKeys, Ttl]);
+export type NewLolliPopPubKeys = t.TypeOf<typeof NewLolliPopPubKeys>;
 
 // TR type
-export const RetrievedPopDocument = t.intersection([
-  PopDocument,
+export const RetrievedLolliPopPubKeys = t.intersection([
+  LolliPopPubKeys,
   RetrievedVersionedModelTTL
 ]);
-export type RetrievedPopDocument = t.TypeOf<typeof RetrievedPopDocument>;
+export type RetrievedLolliPopPubKeys = t.TypeOf<
+  typeof RetrievedLolliPopPubKeys
+>;
 
 export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
-  PopDocument,
-  NewPopDocument,
-  RetrievedPopDocument,
+  LolliPopPubKeys,
+  NewLolliPopPubKeys,
+  RetrievedLolliPopPubKeys,
   typeof LOLLIPOPKEYS_MODEL_ID_FIELD
 > {
   constructor(container: Container) {
     super(
       container,
-      NewPopDocument,
-      RetrievedPopDocument,
+      NewLolliPopPubKeys,
+      RetrievedLolliPopPubKeys,
       LOLLIPOPKEYS_MODEL_ID_FIELD
     );
   }
@@ -118,9 +123,9 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
    * Reserve the key by creating a new document with version 0 with the ttl setted for the time needed,
    * */
   public create(
-    popDocument: PopDocument,
+    popDocument: LolliPopPubKeys,
     option?: RequestOptions
-  ): TE.TaskEither<CosmosErrors, RetrievedPopDocument> {
+  ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
       this.getTtlValue(popDocument),
       // super.create never returns 409 error but a generic CosmosErrorResponse with io-functions-commons v26.8.1
@@ -132,9 +137,9 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
    * Update the last version of the document setting the new properties and the ttl at 2 years
    * */
   public upsert(
-    popDocument: PopDocument,
+    popDocument: LolliPopPubKeys,
     option?: RequestOptions
-  ): TE.TaskEither<CosmosErrors, RetrievedPopDocument> {
+  ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
       this.getTtlValue(popDocument),
       TE.chain(ttl => super.upsert({ ...popDocument, ttl }, option))
@@ -146,7 +151,9 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
    *
    * @deprecated
    * */
-  public update(_: RetrievedPopDocument): TE.TaskEither<CosmosErrors, never> {
+  public update(
+    _: RetrievedLolliPopPubKeys
+  ): TE.TaskEither<CosmosErrors, never> {
     return TE.left(
       toCosmosErrorResponse(new Error("Cannot update a lollipop document"))
     );
@@ -166,7 +173,7 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
   }
 
   private getTtlValue(
-    popDocument: PopDocument
+    popDocument: LolliPopPubKeys
   ): TE.TaskEither<CosmosErrors, NonNegativeInteger> {
     return pipe(
       super.findLastVersionByModelId([popDocument.assertionRef]),

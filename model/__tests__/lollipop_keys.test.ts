@@ -11,9 +11,9 @@ import {
   AssertionFileName,
   LolliPOPKeysModel,
   PendingPopDocument,
-  PopDocument,
+  LolliPopPubKeys,
   PopDocumentStatusEnum,
-  RetrievedPopDocument,
+  RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
   TTL_VALUE_FOR_RESERVATION
 } from "../lollipop_keys";
@@ -36,7 +36,7 @@ const aPendingPopDocument: PendingPopDocument = {
   status: PopDocumentStatusEnum.PENDING
 };
 
-const aPopDocument: PopDocument = {
+const aPopDocument: LolliPopPubKeys = {
   assertionFileName: anAssertionFileName,
   assertionRef: anAssertionRef,
   assertionType: AssertionTypeEnum.OIDC,
@@ -46,7 +46,7 @@ const aPopDocument: PopDocument = {
   status: PopDocumentStatusEnum.VALID
 };
 
-const aRetrievedPopDocument: RetrievedPopDocument = {
+const aRetrievedPopDocument: RetrievedLolliPopPubKeys = {
   id: `${aPopDocument.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
   ...aCosmosResourceMetadata,
   ...aPopDocument,
