@@ -10,7 +10,7 @@ import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   AssertionFileName,
   LolliPOPKeysModel,
-  PendingPopDocument,
+  PendingLolliPopPubKeys,
   LolliPopPubKeys,
   RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
@@ -30,13 +30,13 @@ const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
   _ts: 1
 };
 
-const aPendingPopDocument: PendingPopDocument = {
+const aPendingLolliPopPubKeys: PendingLolliPopPubKeys = {
   assertionRef: anAssertionRef,
   pubKey: aPubKey,
   status: PubKeyStatusEnum.PENDING
 };
 
-const aPopDocument: LolliPopPubKeys = {
+const aLolliPopPubKeys: LolliPopPubKeys = {
   assertionFileName: anAssertionFileName,
   assertionRef: anAssertionRef,
   assertionType: AssertionTypeEnum.OIDC,
@@ -46,10 +46,10 @@ const aPopDocument: LolliPopPubKeys = {
   status: PubKeyStatusEnum.VALID
 };
 
-const aRetrievedPopDocument: RetrievedLolliPopPubKeys = {
-  id: `${aPopDocument.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
+const aRetrievedLolliPopPubKeys: RetrievedLolliPopPubKeys = {
+  id: `${aLolliPopPubKeys.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
   ...aCosmosResourceMetadata,
-  ...aPopDocument,
+  ...aLolliPopPubKeys,
   ttl: TTL_VALUE_AFTER_UPDATE, // 2y
   version: 0 as NonNegativeInteger
 };
@@ -87,9 +87,9 @@ afterAll(() => {
 });
 
 describe("create", () => {
-  it("GIVEN a working PopModel instance and a pending popDocument, WHEN create is called, THEN upsert should be called with ttl equals to 2y", async () => {
+  it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN create is called, THEN upsert should be called with ttl equals to 2y", async () => {
     const model = new LolliPOPKeysModel(containerMock);
-    await model.create(aPendingPopDocument)();
+    await model.create(aPendingLolliPopPubKeys)();
     expect(mockCreateItem).toHaveBeenCalledWith(
       expect.objectContaining({ ttl: TTL_VALUE_FOR_RESERVATION }),
       expect.anything()
@@ -98,10 +98,10 @@ describe("create", () => {
 
   it("GIVEN a working PopModel instance should fail with a COSMOS_ERROR_RESPONSE if a document with same modelId exists", async () => {
     mockFetchAll.mockImplementationOnce(async () => ({
-      resources: [aRetrievedPopDocument]
+      resources: [aRetrievedLolliPopPubKeys]
     }));
     const model = new LolliPOPKeysModel(containerMock);
-    const result = await model.create(aPendingPopDocument)();
+    const result = await model.create(aPendingLolliPopPubKeys)();
 
     expect(mockCreateItem).toHaveBeenCalled();
     expect(E.isLeft(result)).toBeTruthy();
@@ -115,11 +115,11 @@ describe("upsert", () => {
   it("Should return a COSMOS_DECODING_ERROR if the generated ttl was negative", async () => {
     mockFetchAll.mockImplementationOnce(async () => ({
       resources: [
-        { ...aRetrievedPopDocument, ttl: TTL_VALUE_FOR_RESERVATION - 2 }
+        { ...aRetrievedLolliPopPubKeys, ttl: TTL_VALUE_FOR_RESERVATION - 2 }
       ]
     }));
     const model = new LolliPOPKeysModel(containerMock);
-    const result = await model.upsert(aPopDocument)();
+    const result = await model.upsert(aLolliPopPubKeys)();
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_DECODING_ERROR");
@@ -127,14 +127,14 @@ describe("upsert", () => {
     expect(mockCreateItem).not.toHaveBeenCalled();
   });
 
-  it("GIVEN a working PopModel instance and a pending popDocument, WHEN upsert is called, THEN super.upsert should be called with ttl equals to 2y", async () => {
+  it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN upsert is called, THEN super.upsert should be called with ttl equals to 2y", async () => {
     mockFetchAll.mockImplementationOnce(async () => ({
       resources: [
-        { ...aRetrievedPopDocument, status: PubKeyStatusEnum.PENDING }
+        { ...aRetrievedLolliPopPubKeys, status: PubKeyStatusEnum.PENDING }
       ]
     }));
     const model = new LolliPOPKeysModel(containerMock);
-    await model.upsert(aPopDocument)();
+    await model.upsert(aLolliPopPubKeys)();
     expect(mockCreateItem).toHaveBeenCalledWith(
       expect.objectContaining({ ttl: TTL_VALUE_AFTER_UPDATE }),
       expect.anything()
@@ -144,15 +144,15 @@ describe("upsert", () => {
   it("GIVEN a previous version with a ttl, the new version should have a ttl with the remaining time to reach the previous one", async () => {
     const aMockedTtl = TTL_VALUE_FOR_RESERVATION;
     mockFetchAll.mockImplementationOnce(async () => ({
-      resources: [{ ...aRetrievedPopDocument, ttl: aMockedTtl }]
+      resources: [{ ...aRetrievedLolliPopPubKeys, ttl: aMockedTtl }]
     }));
     const model = new LolliPOPKeysModel(containerMock);
-    await model.upsert(aPopDocument)();
+    await model.upsert(aLolliPopPubKeys)();
     expect(mockCreateItem).toHaveBeenCalledWith(
       expect.objectContaining({
         ttl:
           // eslint
-          aRetrievedPopDocument._ts +
+          aRetrievedLolliPopPubKeys._ts +
           aMockedTtl -
           mockedNowTime.getTime() / 1000
       }),

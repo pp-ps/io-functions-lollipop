@@ -34,7 +34,7 @@ export type Ttl = t.TypeOf<typeof Ttl>;
 
 // The time for which we want to reserve a key during login process (in seconds)
 export const TTL_VALUE_FOR_RESERVATION = 900 as NonNegativeInteger; // 15m
-// The time for which we want to keep the popDocument
+// The time for which we want to keep the lolliPopPubKeys
 export const TTL_VALUE_AFTER_UPDATE = 63072000 as NonNegativeInteger; // 2y
 
 // fiscal code - AssertionRefsha256 | AssertionRefSha384 | AssertionRefSha512
@@ -43,14 +43,14 @@ export const AssertionFileName = PatternString(
 );
 export type AssertionFileName = t.TypeOf<typeof AssertionFileName>;
 
-export const PendingPopDocument = t.interface({
+export const PendingLolliPopPubKeys = t.interface({
   assertionRef: AssertionRef,
   pubKey: NonEmptyString,
   status: t.literal(PubKeyStatusEnum.PENDING)
 });
-export type PendingPopDocument = t.TypeOf<typeof PendingPopDocument>;
+export type PendingLolliPopPubKeys = t.TypeOf<typeof PendingLolliPopPubKeys>;
 
-export const NotPendingPopDocument = t.interface({
+export const NotPendingLolliPopPubKeys = t.interface({
   assertionFileName: AssertionFileName,
   assertionRef: AssertionRef,
   assertionType: AssertionType,
@@ -62,12 +62,14 @@ export const NotPendingPopDocument = t.interface({
     t.literal(PubKeyStatusEnum.REVOKED)
   ])
 });
-export type NotPendingPopDocument = t.TypeOf<typeof NotPendingPopDocument>;
+export type NotPendingLolliPopPubKeys = t.TypeOf<
+  typeof NotPendingLolliPopPubKeys
+>;
 
 // T type
 export const LolliPopPubKeys = t.union([
-  NotPendingPopDocument,
-  PendingPopDocument
+  NotPendingLolliPopPubKeys,
+  PendingLolliPopPubKeys
 ]);
 export type LolliPopPubKeys = t.TypeOf<typeof LolliPopPubKeys>;
 
@@ -103,13 +105,13 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
    * Reserve the key by creating a new document with version 0 with the ttl setted for the time needed,
    * */
   public create(
-    popDocument: LolliPopPubKeys,
+    lolliPopPubKeys: LolliPopPubKeys,
     option?: RequestOptions
   ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
-      this.getTtlValue(popDocument),
+      this.getTtlValue(lolliPopPubKeys),
       // super.create never returns 409 error but a generic CosmosErrorResponse with io-functions-commons v26.8.1
-      TE.chain(ttl => super.create({ ...popDocument, ttl }, option))
+      TE.chain(ttl => super.create({ ...lolliPopPubKeys, ttl }, option))
     );
   }
 
@@ -117,12 +119,12 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
    * Update the last version of the document setting the new properties and the ttl at 2 years
    * */
   public upsert(
-    popDocument: LolliPopPubKeys,
+    lolliPopPubKeys: LolliPopPubKeys,
     option?: RequestOptions
   ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
-      this.getTtlValue(popDocument),
-      TE.chain(ttl => super.upsert({ ...popDocument, ttl }, option))
+      this.getTtlValue(lolliPopPubKeys),
+      TE.chain(ttl => super.upsert({ ...lolliPopPubKeys, ttl }, option))
     );
   }
 
@@ -135,7 +137,9 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
     _: RetrievedLolliPopPubKeys
   ): TE.TaskEither<CosmosErrors, never> {
     return TE.left(
-      toCosmosErrorResponse(new Error("Cannot update a lollipop document"))
+      toCosmosErrorResponse(
+        new Error("Updating lollipop public keys is forbidden")
+      )
     );
   }
 
@@ -147,16 +151,16 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
   public updateTTLForAllVersions(): TE.TaskEither<CosmosErrors, never> {
     return TE.left(
       toCosmosErrorResponse(
-        new Error("Cannot update tll for old versions in a lollipop document")
+        new Error("Update tll for old versions is forbidden")
       )
     );
   }
 
   private getTtlValue(
-    popDocument: LolliPopPubKeys
+    lolliPopPubKeys: LolliPopPubKeys
   ): TE.TaskEither<CosmosErrors, NonNegativeInteger> {
     return pipe(
-      super.findLastVersionByModelId([popDocument.assertionRef]),
+      super.findLastVersionByModelId([lolliPopPubKeys.assertionRef]),
       TE.map(
         flow(
           // if the last version was PENDING the new ttl is setted to TTL_VALUE_AFTER_UPDATE
@@ -173,7 +177,7 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
                   )) as NonNegativeInteger)
           ),
           O.getOrElseW(() =>
-            popDocument.status === PubKeyStatusEnum.PENDING
+            lolliPopPubKeys.status === PubKeyStatusEnum.PENDING
               ? TTL_VALUE_FOR_RESERVATION
               : TTL_VALUE_AFTER_UPDATE
           )
