@@ -17,21 +17,31 @@ import { withDefault } from "@pagopa/ts-commons/lib/types";
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 // eslint-disable-next-line @typescript-eslint/ban-types
-export const IConfig = t.interface({
-  APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-  AzureWebJobsStorage: NonEmptyString,
+export const IConfig = t.intersection([
+  t.interface({
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
+    AzureWebJobsStorage: NonEmptyString,
 
-  COSMOSDB_KEY: NonEmptyString,
-  COSMOSDB_NAME: NonEmptyString,
-  COSMOSDB_URI: NonEmptyString,
-  LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
-  LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
-    NonEmptyString,
-    "assertions" as NonEmptyString
-  ),
+    COSMOSDB_KEY: NonEmptyString,
+    COSMOSDB_NAME: NonEmptyString,
+    COSMOSDB_URI: NonEmptyString,
+    LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
+    LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
+      NonEmptyString,
+      "assertions" as NonEmptyString
+    ),
 
-  isProduction: t.boolean
-});
+    // JWT Support
+    ISSUER: NonEmptyString,
+    PRIMARY_PRIVATE_KEY: NonEmptyString,
+    PRIMARY_PUBLIC_KEY: NonEmptyString,
+
+    isProduction: t.boolean
+  }),
+  t.partial({
+    SECONDARY_PUBLIC_KEY: NonEmptyString
+  })
+]);
 
 export const envConfig = {
   ...process.env,
