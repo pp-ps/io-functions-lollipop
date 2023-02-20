@@ -103,7 +103,8 @@ describe("create", () => {
     const model = new LolliPOPKeysModel(containerMock);
     const result = await model.create(aPendingLolliPopPubKeys)();
 
-    expect(mockCreateItem).toHaveBeenCalled();
+    expect(mockCreateItem).not.toHaveBeenCalled();
+    expect(mockFetchAll).toHaveBeenCalled();
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_ERROR_RESPONSE");

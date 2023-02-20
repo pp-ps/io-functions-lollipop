@@ -21,11 +21,10 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
 const LOLLIPOPKEYS_MODEL_PK_FIELD = "assertionRef" as const;
-const LOLLIPOPKEYS_MODEL_ID_FIELD = LOLLIPOPKEYS_MODEL_PK_FIELD;
 
 export const Ttl = t.interface({
   ttl: NonNegativeInteger // do we need this to be -1 in some cases?
@@ -90,14 +89,15 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
   LolliPopPubKeys,
   NewLolliPopPubKeys,
   RetrievedLolliPopPubKeys,
-  typeof LOLLIPOPKEYS_MODEL_ID_FIELD
+  // the actual version of the versionedModel does not support the typings for the modelId field
+  typeof LOLLIPOPKEYS_MODEL_PK_FIELD
 > {
   constructor(container: Container) {
     super(
       container,
       NewLolliPopPubKeys,
       RetrievedLolliPopPubKeys,
-      LOLLIPOPKEYS_MODEL_ID_FIELD
+      LOLLIPOPKEYS_MODEL_PK_FIELD
     );
   }
 
@@ -109,9 +109,24 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
     option?: RequestOptions
   ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
-      this.getTtlValue(lolliPopPubKeys),
-      // super.create never returns 409 error but a generic CosmosErrorResponse with io-functions-commons v26.8.1
-      TE.chain(ttl => super.create({ ...lolliPopPubKeys, ttl }, option))
+      super.findLastVersionByModelId([lolliPopPubKeys.assertionRef]),
+      TE.chain(maybeDocument =>
+        pipe(
+          maybeDocument,
+          O.fold(
+            () =>
+              pipe(
+                O.none,
+                this.getTtlValue(lolliPopPubKeys), // super.create never returns 409 error but a generic CosmosErrorResponse with io-functions-commons v26.8.1
+                ttl => super.create({ ...lolliPopPubKeys, ttl }, option)
+              ),
+            _ =>
+              TE.left({
+                kind: "COSMOS_CONFLICT_RESPONSE"
+              })
+          )
+        )
+      )
     );
   }
 
@@ -123,7 +138,8 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
     option?: RequestOptions
   ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> {
     return pipe(
-      this.getTtlValue(lolliPopPubKeys),
+      super.findLastVersionByModelId([lolliPopPubKeys.assertionRef]),
+      TE.map(this.getTtlValue(lolliPopPubKeys)),
       TE.chain(ttl => super.upsert({ ...lolliPopPubKeys, ttl }, option))
     );
   }
@@ -158,31 +174,25 @@ export class LolliPOPKeysModel extends CosmosdbModelVersionedTTL<
 
   private getTtlValue(
     lolliPopPubKeys: LolliPopPubKeys
-  ): TE.TaskEither<CosmosErrors, NonNegativeInteger> {
-    return pipe(
-      super.findLastVersionByModelId([lolliPopPubKeys.assertionRef]),
-      TE.map(
-        flow(
-          // if the last version was PENDING the new ttl is setted to TTL_VALUE_AFTER_UPDATE
-          // if the last version ttl is missing then the new ttl is setted to TTL_VALUE_AFTER_UPDATE to avoid setting the ttl to a negative value
-          O.map(lastPop =>
-            lastPop.status === PubKeyStatusEnum.PENDING ||
-            (lastPop.ttl ?? 0) < 1
-              ? TTL_VALUE_AFTER_UPDATE
-              : // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, no-underscore-dangle
-                ((lastPop._ts +
-                  (lastPop.ttl ?? 0) -
-                  Math.floor(
-                    new Date().getTime() / 1000
-                  )) as NonNegativeInteger)
-          ),
-          O.getOrElseW(() =>
-            lolliPopPubKeys.status === PubKeyStatusEnum.PENDING
-              ? TTL_VALUE_FOR_RESERVATION
-              : TTL_VALUE_AFTER_UPDATE
-          )
+  ): (lastVersion: O.Option<RetrievedLolliPopPubKeys>) => NonNegativeInteger {
+    return (lastVersion): NonNegativeInteger =>
+      pipe(
+        lastVersion,
+        // if the last version was PENDING the new ttl is setted to TTL_VALUE_AFTER_UPDATE
+        // if the last version ttl is missing then the new ttl is setted to TTL_VALUE_AFTER_UPDATE to avoid setting the ttl to a negative value
+        O.map(lastPop =>
+          lastPop.status === PubKeyStatusEnum.PENDING || (lastPop.ttl ?? 0) < 1
+            ? TTL_VALUE_AFTER_UPDATE
+            : // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, no-underscore-dangle
+              ((lastPop._ts +
+                (lastPop.ttl ?? 0) -
+                Math.floor(new Date().getTime() / 1000)) as NonNegativeInteger)
+        ),
+        O.getOrElseW(() =>
+          lolliPopPubKeys.status === PubKeyStatusEnum.PENDING
+            ? TTL_VALUE_FOR_RESERVATION
+            : TTL_VALUE_AFTER_UPDATE
         )
-      )
-    );
+      );
   }
 }
