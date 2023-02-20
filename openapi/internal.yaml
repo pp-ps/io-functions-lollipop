@@ -26,6 +26,7 @@ paths:
       operationId: reservePubKey
       summary: Create and reserve a new PubKey during login
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -70,6 +71,7 @@ paths:
           schema:
             $ref: '#/components/schemas/AssertionRef'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -118,6 +120,7 @@ paths:
           schema:
             $ref: '#/components/schemas/AssertionRef'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
