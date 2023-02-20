@@ -26,6 +26,7 @@ paths:
       operationId: reservePubKey
       summary: Create and reserve a new PubKey during login
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -69,6 +70,7 @@ paths:
           schema: 
             $ref: "#/components/schemas/AssertionRef"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -118,6 +120,7 @@ paths:
           schema: 
             $ref: "#/components/schemas/AssertionRef"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -184,9 +187,14 @@ components:
 
     JwkPubKey:
       type: string
-      description: represents a Base64url encode of a JWK Public Key
+      description: represents a JWK Public Key
       format: JwkPublicKey
       x-import: '@pagopa/ts-commons/lib/jwk'
+
+    JwkPubKeyToken:
+      type: string
+      minLength: 1
+      description: represents a base64 url encoded JWK Public Kek
 
     JwkPubKeyHashAlgorithm:
       type: string
@@ -211,7 +219,7 @@ components:
         assertion_ref:
           $ref: "#/components/schemas/AssertionRef"
         pub_key:
-          $ref: "#/components/schemas/JwkPubKey"
+          $ref: "#/components/schemas/JwkPubKeyToken"
         version:
           type: number
           minimum: 0
