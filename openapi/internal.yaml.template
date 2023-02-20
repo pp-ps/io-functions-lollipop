@@ -184,7 +184,7 @@ components:
 
     JwkPubKey:
       type: string
-      description: represents a Base64url encode of a JWK Public Key
+      description: represents a JWK Public Key
       format: JwkPublicKey
       x-import: '@pagopa/ts-commons/lib/jwk'
 
