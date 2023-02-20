@@ -107,7 +107,7 @@ describe("create", () => {
     expect(mockFetchAll).toHaveBeenCalled();
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
-      expect(result.left.kind).toEqual("COSMOS_ERROR_RESPONSE");
+      expect(result.left.kind).toEqual("COSMOS_CONFLICT_RESPONSE");
     }
   });
 });
