@@ -261,6 +261,10 @@ components:
       description: represents a JWK Public Key
       format: JwkPublicKey
       x-import: '@pagopa/ts-commons/lib/jwk'
+    JwkPubKeyToken:
+      type: string
+      minLength: 1
+      description: represents a base64 url encoded JWK Public Kek
     JwkPubKeyHashAlgorithm:
       type: string
       enum:
@@ -285,7 +289,7 @@ components:
         assertion_ref:
           $ref: '#/components/schemas/AssertionRef'
         pub_key:
-          $ref: '#/components/schemas/JwkPubKey'
+          $ref: '#/components/schemas/JwkPubKeyToken'
         version:
           type: number
           minimum: 0
