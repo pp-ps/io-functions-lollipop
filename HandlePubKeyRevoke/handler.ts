@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable max-params */
 import { Context } from "@azure/functions";
 import { constVoid, flow, pipe } from "fp-ts/lib/function";
@@ -25,8 +26,7 @@ import {
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { AssertionRefSha512 } from "../generated/definitions/internal/AssertionRefSha512";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
-
-const masterAlgo = "sha512";
+import { JwkPubKeyHashAlgorithm } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 
 /**
  * Based on a previous retrieved LollipopPubKey that match with assertionRef retrieved on queue
@@ -35,14 +35,16 @@ const masterAlgo = "sha512";
  * @param lollipopKeysModel
  * @returns a readonly array of lollipopPubKeys to be revoked
  */
-const extractPubKeysToRevoke = (lollipopKeysModel: LolliPOPKeysModel) => (
+const extractPubKeysToRevoke = (
+  lollipopKeysModel: LolliPOPKeysModel,
+  masterAlgo: JwkPubKeyHashAlgorithm
+) => (
   notPendingLollipopPubKeys: NotPendingLolliPopPubKeys
 ): TE.TaskEither<Failure, ReadonlyArray<NotPendingLolliPopPubKeys>> =>
   pipe(
     notPendingLollipopPubKeys.assertionRef,
     AssertionRefSha512.is,
     B.fold(
-      () => TE.of([notPendingLollipopPubKeys]),
       () =>
         pipe(
           notPendingLollipopPubKeys.pubKey,
@@ -55,7 +57,13 @@ const extractPubKeysToRevoke = (lollipopKeysModel: LolliPOPKeysModel) => (
             pipe(
               TE.tryCatch(
                 () => jose.calculateJwkThumbprint(jwkPublicKey, masterAlgo),
-                flow(E.toError, err => toPermanentFailure(err)())
+                flow(E.toError, err =>
+                  toPermanentFailure(
+                    Error(
+                      `Cannot calculate master key jwk's thumbprint|${err.message}`
+                    )
+                  )()
+                )
               ),
               TE.chainEitherK(
                 flow(
@@ -69,12 +77,16 @@ const extractPubKeysToRevoke = (lollipopKeysModel: LolliPOPKeysModel) => (
                 )
               ),
               TE.chainW(masterAssertionRef =>
-                lollipopKeysModel.findLastVersionByModelId([masterAssertionRef])
-              ),
-              TE.mapLeft(_ =>
-                toTransientFailure(
-                  Error("Cannot perform find masterKey on CosmosDB")
-                )()
+                pipe(
+                  lollipopKeysModel.findLastVersionByModelId([
+                    masterAssertionRef
+                  ]),
+                  TE.mapLeft(_ =>
+                    toTransientFailure(
+                      Error("Cannot perform find masterKey on CosmosDB")
+                    )()
+                  )
+                )
               ),
               TE.chain(
                 TE.fromOption(() =>
@@ -99,7 +111,8 @@ const extractPubKeysToRevoke = (lollipopKeysModel: LolliPOPKeysModel) => (
               ])
             )
           )
-        )
+        ),
+      () => TE.of([notPendingLollipopPubKeys])
     )
   );
 
@@ -107,6 +120,7 @@ export const handleRevoke = (
   context: Context,
   telemetryClient: TelemetryClient,
   lollipopKeysModel: LolliPOPKeysModel,
+  masterAlgo: JwkPubKeyHashAlgorithm,
   rawRevokeMessage: unknown
 ): Promise<Failure | void> =>
   pipe(
@@ -127,7 +141,7 @@ export const handleRevoke = (
           O.foldW(
             () => TE.right(void 0),
             flow(
-              extractPubKeysToRevoke(lollipopKeysModel),
+              extractPubKeysToRevoke(lollipopKeysModel, masterAlgo),
               TE.chainW(
                 flow(
                   RA.map(lollipopKey =>
@@ -136,11 +150,13 @@ export const handleRevoke = (
                       status: PubKeyStatusEnum.REVOKED
                     })
                   ),
-                  RA.sequence(TE.ApplicativeSeq)
+                  RA.sequence(TE.ApplicativeSeq),
+                  TE.mapLeft(_ =>
+                    toTransientFailure(
+                      Error("Cannot perform upsert CosmosDB")
+                    )()
+                  )
                 )
-              ),
-              TE.mapLeft(_ =>
-                toTransientFailure(Error("Cannot perform upsert CosmosDB"))()
               )
             )
           )
@@ -159,6 +175,7 @@ export const handleRevoke = (
         exception: new Error(error),
         properties: {
           detail: err.kind,
+          errorMessage: error,
           fatal: PermanentFailure.is(err).toString(),
           isSuccess: "false",
           modelId: err.modelId ?? "",
