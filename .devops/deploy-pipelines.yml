@@ -174,4 +174,4 @@ stages:
         # Template for generating and deploying client SDk to NPM
         - template: templates/client-sdk-publish/template.yaml@pagopaCommons
           parameters:
-            openapiSpecPath: 'openapi/index.yaml'
+            openapiSpecPath: './openapi/internal.yaml'
