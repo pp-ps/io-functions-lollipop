@@ -1,76 +1,20 @@
 import * as E from "fp-ts/lib/Either";
 import * as tk from "timekeeper";
 
-import { Container } from "@azure/cosmos";
-import { AssertionRef } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionRef";
-import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionType";
-import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
-  AssertionFileName,
   LolliPOPKeysModel,
-  PendingLolliPopPubKeys,
-  LolliPopPubKeys,
-  RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
   TTL_VALUE_FOR_RESERVATION
 } from "../lollipop_keys";
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
-
-const aFiscalCode = "RLDBSV36A78Y792X" as FiscalCode;
-const anAssertionRef = "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c" as AssertionRef;
-const anAssertionFileName = `${aFiscalCode}-${anAssertionRef}` as AssertionFileName;
-const aPubKey = "aValidPubKey" as NonEmptyString;
-
-const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
-  _etag: "_etag",
-  _rid: "_rid",
-  _self: "_self",
-  _ts: 1
-};
-
-const aPendingLolliPopPubKeys: PendingLolliPopPubKeys = {
-  assertionRef: anAssertionRef,
-  pubKey: aPubKey,
-  status: PubKeyStatusEnum.PENDING
-};
-
-const aLolliPopPubKeys: LolliPopPubKeys = {
-  assertionFileName: anAssertionFileName,
-  assertionRef: anAssertionRef,
-  assertionType: AssertionTypeEnum.OIDC,
-  expiredAt: new Date(),
-  fiscalCode: aFiscalCode,
-  pubKey: aPubKey,
-  status: PubKeyStatusEnum.VALID
-};
-
-const aRetrievedLolliPopPubKeys: RetrievedLolliPopPubKeys = {
-  id: `${aLolliPopPubKeys.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
-  ...aCosmosResourceMetadata,
-  ...aLolliPopPubKeys,
-  ttl: TTL_VALUE_AFTER_UPDATE, // 2y
-  version: 0 as NonNegativeInteger
-};
-
-const mockCreateItem = jest.fn();
-const mockUpsert = jest.fn();
-const mockFetchAll = jest.fn();
-
-mockFetchAll.mockImplementation(async () => ({
-  resources: []
-}));
-
-const containerMock = ({
-  items: {
-    create: mockCreateItem,
-    query: jest.fn(() => ({
-      fetchAll: mockFetchAll
-    })),
-    upsert: mockUpsert
-  }
-} as unknown) as Container;
+import {
+  aLolliPopPubKeys,
+  aPendingLolliPopPubKeys,
+  aRetrievedLolliPopPubKeys,
+  containerMock,
+  mockCreateItem,
+  mockFetchAll
+} from "../../__mocks__/lollipopkeysMock";
 
 beforeEach(() => {
   jest.clearAllMocks();
