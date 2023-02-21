@@ -291,7 +291,7 @@ components:
         pub_key:
           $ref: '#/components/schemas/JwkPubKeyToken'
         version:
-          type: integer 
+          type: integer
           minimum: 0
         status:
           $ref: '#/components/schemas/PubKeyStatus'
