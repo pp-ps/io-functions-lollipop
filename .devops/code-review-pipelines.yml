@@ -48,7 +48,7 @@ stages:
             yarn pregenerate 
           displayName: 'Bundle OpenAPI'
         - script: |
-            [[ -z $(git status --porcelain) ]] && exit 0 || exit 1
+            [[ -z $(git status --porcelain) ]] && exit 0 || git diff && exit 1
           displayName: 'Check OpenAPI spec is up-to-date'
         - script: |
             yarn lint-api
