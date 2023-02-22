@@ -30,8 +30,7 @@ const aConfigWithPrimaryKey = pipe(
   JWTConfig.decode({
     ISSUER: issuer,
     PRIMARY_PRIVATE_KEY: aPrimaryKey.privateKey,
-    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey,
-    JWT_TTL: 900
+    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey
   }),
   E.getOrElseW(_ => {
     throw Error("Cannot decode IConfig " + JSON.stringify(_));
