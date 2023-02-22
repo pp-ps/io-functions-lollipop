@@ -107,7 +107,7 @@ export const GenerateLCParamsHandler = (
               dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
             () =>
               ResponseErrorConflict(
-                "Cannot Cannot generate LC params for an EXPIRED pubKey"
+                "Cannot generate LC params for an EXPIRED pubKey"
               )
           )
         ),
