@@ -38,7 +38,11 @@ const extractPubKeysToRevoke = (
   notPendingLollipopPubKeys: NotPendingLolliPopPubKeys
 ): TE.TaskEither<Failure, ReadonlyArray<NotPendingLolliPopPubKeys>> =>
   pipe(
-    getAllAssertionsRef(masterAlgo, notPendingLollipopPubKeys),
+    getAllAssertionsRef(
+      masterAlgo,
+      notPendingLollipopPubKeys.assertionRef,
+      notPendingLollipopPubKeys.pubKey
+    ),
     TE.mapLeft(e => toPermanentFailure(e)()),
     TE.chain(({ master, used }) =>
       pipe(
