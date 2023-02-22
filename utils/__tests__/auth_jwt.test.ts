@@ -3,7 +3,6 @@ import * as jwt from "jsonwebtoken";
 import * as E from "fp-ts/Either";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { Second } from "@pagopa/ts-commons/lib/units";
 
 import {
   AuthJWT,
@@ -15,7 +14,7 @@ import {
 
 import { IConfig } from "../config";
 
-import { aPrimaryKey, aSecondaryKey } from "../../__mocks__/keys";
+import { aPrimaryKey } from "../../__mocks__/keys";
 import { getGenerateJWT } from "../jwt_with_key_rotation";
 
 const issuer = "test-issuer" as NonEmptyString;
@@ -49,14 +48,13 @@ describe("getValidateJWT - Success", () => {
     const generateJWT = getGenerateAuthJWT(aConfigWithPrimaryKey);
     const token = await generateJWT(aPayload)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateAuthJWT(aConfigWithPrimaryKey)(
         token.right
       )();
       checkDecodedToken(result);
-    } else {
-      fail("Invalid token");
     }
   });
 });
@@ -70,6 +68,7 @@ describe("getValidateJWT - Failures", () => {
     );
     const token = await generateJWT({ a: "a", b: 1 }, standardJWTTTL)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateAuthJWT(aConfigWithPrimaryKey)(
@@ -79,8 +78,6 @@ describe("getValidateJWT - Failures", () => {
       expect(result).toMatchObject(
         E.left(E.toError("Invalid AuthJWT payload"))
       );
-    } else {
-      fail("Invalid token");
     }
   });
 });

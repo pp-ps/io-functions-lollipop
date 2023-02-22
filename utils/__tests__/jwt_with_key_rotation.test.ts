@@ -33,6 +33,7 @@ describe("getValidateJWT - Success", () => {
     const generateJWT = getGenerateJWT(issuer, aPrimaryKey.privateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateJWT(
@@ -41,8 +42,6 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
-    } else {
-      fail("Invalid token");
     }
   });
 
@@ -51,6 +50,7 @@ describe("getValidateJWT - Success", () => {
     const generateJWT = getGenerateJWT(issuer, aPrimaryKey.privateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateJWT(
@@ -60,8 +60,6 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
-    } else {
-      fail("Invalid token");
     }
   });
 
@@ -70,6 +68,7 @@ describe("getValidateJWT - Success", () => {
     const generateJWT = getGenerateJWT(issuer, aSecondaryKey.privateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateJWT(
@@ -79,8 +78,6 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
-    } else {
-      fail("Invalid token");
     }
   });
 });
@@ -89,11 +86,12 @@ describe("getValidateJWT - Failure", () => {
   const delay = (ms: number): Promise<void> =>
     new Promise(resolve => setTimeout(resolve, ms));
 
-  it("should fail validating a invalid JWT with only public primary key, during standard period", async () => {
+  it("should fail validating an invalid JWT with only public primary key, during standard period", async () => {
     // Setup
     const generateJWT = getGenerateJWT(issuer, aSecondaryKey.privateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateJWT(
@@ -104,16 +102,15 @@ describe("getValidateJWT - Failure", () => {
       expect(result).toMatchObject(
         E.left(E.toError("JsonWebTokenError - invalid signature"))
       );
-    } else {
-      fail("Invalid token");
     }
   });
 
-  it("should fail validating a invalid JWT with both public primary key and public secondary key, during key rotation period", async () => {
+  it("should fail validating an invalid JWT with both public primary key and public secondary key, during key rotation period", async () => {
     // Setup
     const generateJWT = getGenerateJWT(issuer, aSecondaryKey.privateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Test
       const result = await getValidateJWT(
@@ -124,8 +121,6 @@ describe("getValidateJWT - Failure", () => {
       expect(result).toMatchObject(
         E.left(E.toError("JsonWebTokenError - invalid signature"))
       );
-    } else {
-      fail("Invalid token");
     }
   });
 
@@ -135,6 +130,7 @@ describe("getValidateJWT - Failure", () => {
     const token = await generateJWT(aPayload, 1 as Second)();
 
     // Test
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       // Wait 1.5s for letting the token to expire
       await delay(1500);
@@ -146,8 +142,6 @@ describe("getValidateJWT - Failure", () => {
       expect(result).toMatchObject(
         E.left(E.toError("TokenExpiredError - jwt expired"))
       );
-    } else {
-      fail("Invalid token");
     }
   });
 
@@ -160,6 +154,7 @@ describe("getValidateJWT - Failure", () => {
     const token = await generateJWT(aPayload, aTtl)();
 
     // Test
+    expect(E.isRight(token)).toBeTruthy();
     if (E.isRight(token)) {
       const result = await getValidateJWT(
         issuer,
@@ -173,8 +168,6 @@ describe("getValidateJWT - Failure", () => {
           )
         )
       );
-    } else {
-      fail("Invalid token");
     }
   });
 });
