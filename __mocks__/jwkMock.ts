@@ -21,4 +21,10 @@ export const aSha512PubKey: NewPubKeyPayload = {
   pub_key: aJwkPubKey
 };
 export const aSha512PubKeyThumbprint =
+  "WbgQ6E5Rzdj1HSBkRQbZ_CMI2O9IDReGkb-CcJIuv7dS8GKWrC4EPxy4rWXfQ9F-JWz-67VYfKRjS3m7uc8wBQ";
+
+export const aSha384PubKeyThumbprint =
+  "dmWR9bdB0RNEZTv0LqKqyiFOAb5f3zn3mDyMXH4-asKriaeV_tjdR-3MYPQ_PWWc";
+
+export const aSha256PubKeyThumbprint =
   "LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";

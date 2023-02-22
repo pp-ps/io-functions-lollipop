@@ -1,14 +1,35 @@
-import { aJwkPubKey, aNotValidRsaJwkPublicKey } from "../../__mocks__/jwkMock";
+import {
+  aJwkPubKey,
+  aSha256PubKeyThumbprint,
+  aSha384PubKeyThumbprint,
+  aSha512PubKeyThumbprint
+} from "../../__mocks__/jwkMock";
 import { calculateThumbprint, encodeBase64 } from "../jose";
-import * as E from "fp-ts/Either";
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
+import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 
 describe("calculateThumbprint", () => {
-  test("GIVEN a valid jwk WHEN calculateThumbprint THEN return the thumbprint of the jwk", async () => {
-    const jwk = aJwkPubKey;
-    const result = await calculateThumbprint(jwk)();
-    expect(E.isRight(result)).toBeTruthy();
-  });
+  test.each([
+    {
+      algo: JwkPubKeyHashAlgorithmEnum.sha256,
+      expected: aSha256PubKeyThumbprint
+    },
+    {
+      algo: JwkPubKeyHashAlgorithmEnum.sha384,
+      expected: aSha384PubKeyThumbprint
+    },
+    {
+      algo: JwkPubKeyHashAlgorithmEnum.sha512,
+      expected: aSha512PubKeyThumbprint
+    }
+  ])(
+    "GIVEN a valid jwk WHEN calculateThumbprint with algo $algo THEN return the thumbprint of the jwk",
+    async ({ algo, expected }) => {
+      const jwk = aJwkPubKey;
+      const result = await calculateThumbprint(algo)(jwk)();
+      expect(result).toEqual(expect.objectContaining({ right: expected }));
+    }
+  );
 });
 
 describe("encodeBase64", () => {
