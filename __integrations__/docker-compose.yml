@@ -53,7 +53,9 @@ services:
     volumes:
       - "./:/usr/src/app"
       - "../openapi:/usr/src/openapi"
-      - "../:/usr/src/"
+      - "../model:/usr/src/model"
+      - "../generated:/usr/src/generated"
+      - "../__mocks__:/usr/src/__mocks__"
     depends_on:
       - cosmosdb
       - storage-account
