@@ -76,7 +76,7 @@ const extractPubKeysToRevoke = (
                   )
                 )
               ),
-              TE.chainW(masterAssertionRef =>
+              TE.chain(masterAssertionRef =>
                 pipe(
                   lollipopKeysModel.findLastVersionByModelId([
                     masterAssertionRef
@@ -95,7 +95,7 @@ const extractPubKeysToRevoke = (
                   )()
                 )
               ),
-              TE.chainEitherKW(
+              TE.chainEitherK(
                 flow(
                   NotPendingLolliPopPubKeys.decode,
                   E.mapLeft(_ =>
