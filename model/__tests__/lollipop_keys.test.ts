@@ -11,9 +11,7 @@ import {
   aLolliPopPubKeys,
   aPendingLolliPopPubKeys,
   aRetrievedLolliPopPubKeys,
-  containerMock,
-  mockCreateItem,
-  mockFetchAll
+  mockContainer
 } from "../../__mocks__/lollipopkeysMock";
 
 beforeEach(() => {
@@ -32,23 +30,25 @@ afterAll(() => {
 
 describe("create", () => {
   it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN create is called, THEN upsert should be called with ttl equals to 15 minutes", async () => {
-    const model = new LolliPOPKeysModel(containerMock);
+    const mockedContainer = mockContainer();
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     await model.create(aPendingLolliPopPubKeys)();
-    expect(mockCreateItem).toHaveBeenCalledWith(
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
       expect.objectContaining({ ttl: TTL_VALUE_FOR_RESERVATION }),
       expect.anything()
     );
   });
 
   it("GIVEN a working PopModel instance should fail with a COSMOS_ERROR_RESPONSE if a document with same modelId exists", async () => {
-    mockFetchAll.mockImplementationOnce(async () => ({
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.fetchAll.mockImplementationOnce(async () => ({
       resources: [aRetrievedLolliPopPubKeys]
     }));
-    const model = new LolliPOPKeysModel(containerMock);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     const result = await model.create(aPendingLolliPopPubKeys)();
 
-    expect(mockCreateItem).not.toHaveBeenCalled();
-    expect(mockFetchAll).toHaveBeenCalled();
+    expect(mockedContainer.mock.create).not.toHaveBeenCalled();
+    expect(mockedContainer.mock.fetchAll).toHaveBeenCalled();
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_CONFLICT_RESPONSE");
@@ -58,29 +58,31 @@ describe("create", () => {
 
 describe("upsert", () => {
   it("Should return a COSMOS_DECODING_ERROR if the generated ttl was negative", async () => {
-    mockFetchAll.mockImplementationOnce(async () => ({
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.fetchAll.mockImplementationOnce(async () => ({
       resources: [
         { ...aRetrievedLolliPopPubKeys, ttl: TTL_VALUE_FOR_RESERVATION - 2 }
       ]
     }));
-    const model = new LolliPOPKeysModel(containerMock);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     const result = await model.upsert(aLolliPopPubKeys)();
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
       expect(result.left.kind).toEqual("COSMOS_DECODING_ERROR");
     }
-    expect(mockCreateItem).not.toHaveBeenCalled();
+    expect(mockedContainer.mock.create).not.toHaveBeenCalled();
   });
 
   it("GIVEN a working PopModel instance and a pendingLolliPopPubKeys, WHEN upsert is called, THEN super.upsert should be called with ttl equals to 2y", async () => {
-    mockFetchAll.mockImplementationOnce(async () => ({
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.fetchAll.mockImplementationOnce(async () => ({
       resources: [
         { ...aRetrievedLolliPopPubKeys, status: PubKeyStatusEnum.PENDING }
       ]
     }));
-    const model = new LolliPOPKeysModel(containerMock);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     await model.upsert(aLolliPopPubKeys)();
-    expect(mockCreateItem).toHaveBeenCalledWith(
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
       expect.objectContaining({ ttl: TTL_VALUE_AFTER_UPDATE }),
       expect.anything()
     );
@@ -88,12 +90,13 @@ describe("upsert", () => {
 
   it("GIVEN a previous version with a ttl, the new version should have a ttl with the remaining time to reach the previous one", async () => {
     const aMockedTtl = TTL_VALUE_FOR_RESERVATION;
-    mockFetchAll.mockImplementationOnce(async () => ({
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.fetchAll.mockImplementationOnce(async () => ({
       resources: [{ ...aRetrievedLolliPopPubKeys, ttl: aMockedTtl }]
     }));
-    const model = new LolliPOPKeysModel(containerMock);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     await model.upsert(aLolliPopPubKeys)();
-    expect(mockCreateItem).toHaveBeenCalledWith(
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
       expect.objectContaining({
         ttl:
           // eslint

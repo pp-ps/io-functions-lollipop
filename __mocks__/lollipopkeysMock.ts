@@ -9,7 +9,8 @@ import {
   PendingLolliPopPubKeys,
   LolliPopPubKeys,
   RetrievedLolliPopPubKeys,
-  TTL_VALUE_AFTER_UPDATE
+  TTL_VALUE_AFTER_UPDATE,
+  TTL_VALUE_FOR_RESERVATION
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
@@ -49,18 +50,31 @@ export const aRetrievedLolliPopPubKeys: RetrievedLolliPopPubKeys = {
   version: 0 as NonNegativeInteger
 };
 
-export const mockCreateItem = jest.fn();
-export const mockUpsert = jest.fn();
-export const mockFetchAll = jest.fn().mockImplementationOnce(async () => ({
-  resources: []
-}));
+export const mockContainer = () => {
+  const create = jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      resource: { ...aRetrievedLolliPopPubKeys, ttl: TTL_VALUE_FOR_RESERVATION }
+    })
+  );
+  const fetchAll = jest.fn().mockImplementation(async () => ({
+    resources: []
+  }));
+  const upsert = jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      resource: aRetrievedLolliPopPubKeys
+    })
+  );
 
-export const containerMock = ({
-  items: {
-    create: mockCreateItem,
-    query: jest.fn(() => ({
-      fetchAll: mockFetchAll
-    })),
-    upsert: mockUpsert
-  }
-} as unknown) as Container;
+  return {
+    mock: { create, fetchAll, upsert },
+    container: ({
+      items: {
+        create,
+        query: jest.fn(() => ({
+          fetchAll
+        })),
+        upsert
+      }
+    } as unknown) as Container
+  };
+};
