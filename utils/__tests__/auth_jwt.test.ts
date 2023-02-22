@@ -8,33 +8,43 @@ import {
   AuthJWT,
   DecodedAuthJWT,
   getGenerateAuthJWT,
-  getValidateAuthJWT,
-  standardJWTTTL
+  getValidateAuthJWT
 } from "../auth_jwt";
 
-import { IConfig } from "../config";
+import { JWTConfig } from "../config";
 
 import { aPrimaryKey } from "../../__mocks__/keys";
 import { getGenerateJWT } from "../jwt_with_key_rotation";
+import { Second } from "@pagopa/ts-commons/lib/units";
+import { pipe } from "fp-ts/lib/function";
 
 const issuer = "test-issuer" as NonEmptyString;
+const standardJWTTTL = 900 as Second;
 
 const aPayload = {
   assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
   operationId: "anOperationId"
 } as AuthJWT;
 
-const aConfigWithPrimaryKey = {
-  ISSUER: issuer,
-  PRIMARY_PRIVATE_KEY: aPrimaryKey.privateKey,
-  PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey
-} as IConfig;
+const aConfigWithPrimaryKey = pipe(
+  JWTConfig.decode({
+    ISSUER: issuer,
+    PRIMARY_PRIVATE_KEY: aPrimaryKey.privateKey,
+    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey,
+    JWT_TTL: 900
+  }),
+  E.getOrElseW(_ => {
+    throw Error("Cannot decode IConfig " + JSON.stringify(_));
+  })
+);
 
 describe("getGenerateJWT", () => {
   it("should generate a valid AuthJWT", async () => {
     const generateJWT = getGenerateAuthJWT(aConfigWithPrimaryKey);
 
     const res = await generateJWT(aPayload)();
+
+    console.log(res);
 
     expect(res).toMatchObject(
       E.right(expect.stringMatching(`[A-Za-z0-9-_]{1,520}`))

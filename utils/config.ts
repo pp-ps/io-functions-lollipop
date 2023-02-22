@@ -13,8 +13,30 @@ import { pipe } from "fp-ts/lib/function";
 import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+import { withFallback } from "io-ts-types";
 
-// global app configuration
+// ----------------------------
+// JWT Configuration
+// ----------------------------
+export type JWTConfig = t.TypeOf<typeof JWTConfig>;
+export const JWTConfig = t.intersection([
+  t.type({
+    ISSUER: NonEmptyString,
+    // Default 15min = 60s * 15m
+    JWT_TTL: withFallback(NumberFromString, 900),
+
+    PRIMARY_PRIVATE_KEY: NonEmptyString,
+    PRIMARY_PUBLIC_KEY: NonEmptyString
+  }),
+  t.partial({
+    SECONDARY_PUBLIC_KEY: NonEmptyString
+  })
+]);
+
+// ----------------------------
+// Global app configuration
+// ----------------------------
 export type IConfig = t.TypeOf<typeof IConfig>;
 // eslint-disable-next-line @typescript-eslint/ban-types
 export const IConfig = t.intersection([
@@ -31,16 +53,9 @@ export const IConfig = t.intersection([
       "assertions" as NonEmptyString
     ),
 
-    // JWT Support
-    ISSUER: NonEmptyString,
-    PRIMARY_PRIVATE_KEY: NonEmptyString,
-    PRIMARY_PUBLIC_KEY: NonEmptyString,
-
     isProduction: t.boolean
   }),
-  t.partial({
-    SECONDARY_PUBLIC_KEY: NonEmptyString
-  })
+  JWTConfig
 ]);
 
 export const envConfig = {
