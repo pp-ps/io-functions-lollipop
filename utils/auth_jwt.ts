@@ -33,24 +33,24 @@ export type DecodedAuthJWT = jwt.JwtPayload & AuthJWT;
 /**
  * AuthJWT Generation
  */
-export type GenerateAuthGWT = (
+export type GenerateAuthJWT = (
   authJWT: AuthJWT
 ) => TE.TaskEither<Error, NonEmptyString>;
 
 export const getGenerateAuthJWT = ({
   ISSUER,
   PRIMARY_PRIVATE_KEY
-}: IConfig): GenerateAuthGWT =>
+}: IConfig): GenerateAuthJWT =>
   pipe(
     getGenerateJWT(ISSUER, PRIMARY_PRIVATE_KEY),
-    generateJWTFunction => (authJWT): ReturnType<GenerateAuthGWT> =>
+    generateJWTFunction => (authJWT): ReturnType<GenerateAuthJWT> =>
       generateJWTFunction(authJWT, standardJWTTTL)
   );
 
 /**
  * AuthJWT Validation
  */
-export type ValidateAuthGWT = (
+export type ValidateAuthJWT = (
   token: NonEmptyString
 ) => TE.TaskEither<Error, DecodedAuthJWT>;
 
@@ -58,10 +58,10 @@ export const getValidateAuthJWT = ({
   ISSUER,
   PRIMARY_PUBLIC_KEY,
   SECONDARY_PUBLIC_KEY
-}: IConfig): ValidateAuthGWT =>
+}: IConfig): ValidateAuthJWT =>
   pipe(
     getValidateJWT(ISSUER, PRIMARY_PUBLIC_KEY, SECONDARY_PUBLIC_KEY),
-    validateJWTFunction => (token): ReturnType<ValidateAuthGWT> =>
+    validateJWTFunction => (token): ReturnType<ValidateAuthJWT> =>
       pipe(
         validateJWTFunction(token),
         TE.chain(
