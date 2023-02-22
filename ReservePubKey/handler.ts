@@ -39,7 +39,7 @@ const cosmosErrorsToResponse = (
   error: CosmosErrors
 ): IResponseErrorConflict | IResponseErrorInternal =>
   error.kind === "COSMOS_CONFLICT_RESPONSE"
-    ? ResponseErrorConflict("conflict on lollipop reserve keys")
+    ? ResponseErrorConflict("A lollipop pubKey has been already reserved")
     : ResponseErrorInternal(JSON.stringify(error));
 
 export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
