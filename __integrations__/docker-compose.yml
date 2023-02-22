@@ -53,6 +53,7 @@ services:
     volumes:
       - "./:/usr/src/app"
       - "../openapi:/usr/src/openapi"
+      - "../:/"
     depends_on:
       - cosmosdb
       - storage-account
