@@ -16,6 +16,7 @@
     "dev": "npm-run-all --parallel start watch",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "test:integration:model": "yarn build && cd ./__integrations__ && yarn install --frozen-lockfile && yarn test:model",
     "lint": "eslint . -c .eslintrc.js --ext .ts,.tsx --cache",
     "lint-api": "find ./openapi -name '*.yaml' -exec swagger-cli validate {} \\;",
     "openapi:bundle": "bundle-api-spec -i openapi/internal.yaml.template -o openapi/internal.yaml -V $npm_package_version",

@@ -24,7 +24,7 @@ import {
 import { pipe } from "fp-ts/lib/function";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
-const LOLLIPOPKEYS_MODEL_PK_FIELD = "assertionRef" as const;
+export const LOLLIPOPKEYS_MODEL_PK_FIELD = "assertionRef" as const;
 
 export const Ttl = t.interface({
   ttl: NonNegativeInteger // do we need this to be -1 in some cases?

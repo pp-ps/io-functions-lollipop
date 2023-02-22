@@ -1,58 +1,31 @@
 # IO Functions template
 
-Template per l'utilizzo di Azure Functions (e Durable Functions) all'interno del
-progetto IO.
+## Integration test
 
-Una volta clonato il repo assicurarsi di:
+### Testing models
 
-- editare i metadati del repository nel file `package.json`
+To test models [@zeit/cosmosdb-server](https://www.npmjs.com/package/@zeit/cosmosdb-server) is needed, it can be installed globally by running
 
-- specificare un nome per il
-  [TaskHub](https://docs.microsoft.com/it-it/azure/azure-functions/durable/durable-functions-task-hubs)
-  in host.json in modo da evitare di condividere lo stesso per function diverse
-  che usano lo stesso storage
-
-- effettuare il [tuning dei parametri per le durable
-  function](https://docs.microsoft.com/it-it/azure/azure-functions/durable/durable-functions-bindings#host-json)
-
-- impostare a `false` il parametro `FUNCTIONS_V2_COMPATIBILITY_MODE` nel file
-  `local.settings.json` nel caso di upgrade a `azure-functions` `3.x` o `4.x`
-
-- modificare l' endpoint di healthcheck all' interno del file `deploy-pipelines.yml` in base al `basePath` configurato.
-
-- fare una PR sul progetto [gitops](https://github.com/pagopa/gitops) per deployare le pipelines. (un esempio [qui](https://github.com/pagopa/gitops/pull/11) )
-
-- fare una PR sul progetto [io-infrastructure-live-new](https://github.com/pagopa/io-infrastructure-live-new) per fare il stetup degli ambienti di prod e staging della nuova function. (un esempio [qui](https://github.com/pagopa/io-infrastructure-live-new/pull/465) )
-
-## Sviluppo in locale con Docker
-
-```shell
-cp env.example .env
-yarn install
-yarn build
-docker-compose up -d --build
-docker-compose logs -f functions
-open http://localhost/some/path/test
+```bash
+yarn global add @zeit/cosmosdb-server
 ```
-## Sviluppo in locale con Docker
+It can be ran with
 
-```shell
-cp env.example .env
-yarn install
-yarn build
-docker-compose up -d --build
-docker-compose logs -f functions
-open http://localhost/some/path/test
+```bash
+nohup cosmosdb-server -p 3000 &
 ```
 
-## Deploy
+Use then 
+```bash
+docker run -d --rm -p 10000:10000 mcr.microsoft.com/azure-storage/azurite azurite-blob --blobHost 0.0.0.0
+```
 
-Il deploy avviene tramite una [pipeline](./.devops/deploy-pipelines.yml)
-(workflow) configurata su [Azure DevOps](https://dev.azure.com/pagopa-io/).
+Finally you can run your integration test with
 
-## Esempi di function
-
-Sono presenti alcune function di esempio che permettono di testare la corretta
-esecuzione del runtime delle durable functions. Le funzioni attivate 
-da [trigger HTTP](./HttpTriggerFunction) utilizzano il pacchetto
-[io-functions-express](https://github.com/teamdigitale/io-functions-express).
+```bash
+COSMOSDB_URI=https://localhost:3000/ \
+COSMOSDB_KEY="dummy key" \
+COSMOSDB_DATABASE_NAME=integration-tests \
+STORAGE_CONN_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;" \
+yarn test:integration:model
+```
