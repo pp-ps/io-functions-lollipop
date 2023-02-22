@@ -1,4 +1,3 @@
-import * as jwt from "jsonwebtoken";
 import * as t from "io-ts";
 
 import * as E from "fp-ts/Either";
@@ -25,7 +24,7 @@ export const AuthJWT = t.interface({
   operationId: OperationId
 });
 
-export type DecodedAuthJWT = jwt.JwtPayload & AuthJWT;
+export type DecodedAuthJWT = AuthJWT;
 
 /**
  * AuthJWT Generation
