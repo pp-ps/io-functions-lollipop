@@ -12,6 +12,10 @@ import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
+
+const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 30 as NonNegativeInteger;
 
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
@@ -22,6 +26,11 @@ export const IConfig = t.interface({
   COSMOSDB_KEY: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
+
+  KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS: withDefault(
+    NonNegativeInteger,
+    DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
+  ),
 
   isProduction: t.boolean
 });

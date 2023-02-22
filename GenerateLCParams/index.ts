@@ -6,18 +6,28 @@ import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middl
 
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 
+import { cosmosDbInstance } from "../utils/cosmosdb";
+import {
+  LolliPOPKeysModel,
+  LOLLIPOPKEYS_COLLECTION_NAME
+} from "../model/lollipop_keys";
 import { getConfigOrThrow } from "../utils/config";
-
 import { GenerateLCParams } from "./handler";
 
+const lollipopKeysModel = new LolliPOPKeysModel(
+  cosmosDbInstance.container(LOLLIPOPKEYS_COLLECTION_NAME)
+);
+
 const config = getConfigOrThrow();
-console.log(config);
 
 // Setup Express
 const app = express();
 secureExpressApp(app);
 
-app.post("/api/v1/pubKeys/:assertion_ref/generate", GenerateLCParams());
+app.post(
+  "/api/v1/pubKeys/:assertion_ref/generate",
+  GenerateLCParams(lollipopKeysModel, config.KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS)
+);
 
 const azureFunctionHandler = createAzureFunctionHandler(app);
 
