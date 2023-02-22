@@ -4,12 +4,7 @@ import * as E from "fp-ts/Either";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
-import {
-  AuthJWT,
-  DecodedAuthJWT,
-  getGenerateAuthJWT,
-  getValidateAuthJWT
-} from "../auth_jwt";
+import { AuthJWT, getGenerateAuthJWT, getValidateAuthJWT } from "../auth_jwt";
 
 import { JWTConfig } from "../config";
 
@@ -95,7 +90,7 @@ describe("getValidateJWT - Failures", () => {
 // private methods
 // -------------------
 
-const checkDecodedToken = async (result: E.Either<Error, DecodedAuthJWT>) => {
+const checkDecodedToken = async (result: E.Either<Error, AuthJWT>) => {
   expect(result).toMatchObject(
     E.right(
       expect.objectContaining({
