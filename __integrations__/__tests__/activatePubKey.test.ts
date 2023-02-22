@@ -55,12 +55,17 @@ let database: Database;
 beforeAll(async () => {
   database = await pipe(
     createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
-    TE.chain(() => TE.fromTask(createQueues(queueClient, ["revoke-queue"]))),
     TE.getOrElse(e => {
       throw Error("Cannot create infra resources");
     })
   )();
 
+  await pipe(
+    TE.fromTask(createQueues(queueClient, ["revoke-queue"])),
+    TE.getOrElse(() => {
+      throw Error("Cannot create queues");
+    })
+  )();
   // await pipe(
   //   createBlobs(blobService, [MESSAGE_CONTAINER_NAME]),
   //   TE.getOrElse(() => {
