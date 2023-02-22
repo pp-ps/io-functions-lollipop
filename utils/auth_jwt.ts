@@ -24,8 +24,6 @@ export const AuthJWT = t.interface({
   operationId: OperationId
 });
 
-export type DecodedAuthJWT = AuthJWT;
-
 /**
  * AuthJWT Generation
  */
@@ -49,7 +47,7 @@ export const getGenerateAuthJWT = ({
  */
 export type ValidateAuthJWT = (
   token: NonEmptyString
-) => TE.TaskEither<Error, DecodedAuthJWT>;
+) => TE.TaskEither<Error, AuthJWT>;
 
 export const getValidateAuthJWT = ({
   ISSUER,

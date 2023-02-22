@@ -26,11 +26,10 @@ export type GetGenerateJWT = <T extends Record<string, unknown>>(
   primaryPrivateKey: NonEmptyString
 ) => (payload: T, ttl: Second) => TE.TaskEither<Error, NonEmptyString>;
 
-export const getGenerateJWT: GetGenerateJWT = (
-  issuer,
-  primaryPrivateKey
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-) => (payload, ttl) =>
+export const getGenerateJWT: GetGenerateJWT = (issuer, primaryPrivateKey) => (
+  payload,
+  ttl
+): TE.TaskEither<Error, NonEmptyString> =>
   pipe(
     TE.taskify<Error, string>(cb =>
       jwt.sign(
