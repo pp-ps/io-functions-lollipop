@@ -8,14 +8,26 @@ import { Second } from "@pagopa/ts-commons/lib/units";
 import { IConfig } from "../config";
 import { getGenerateJWT, getValidateJWT } from "../jwt_with_key_rotation";
 
-import { aPrimaryKey, aSecondaryKey } from "../../__mocks__/keys";
+import {
+  aDifferentPrivateKey,
+  aPrimaryKey,
+  aSecondaryKey
+} from "../../__mocks__/keys";
 
 const issuer = "test-issuer" as NonEmptyString;
 
 const aPayload = { a: "a", b: 1 };
 const aTtl = 7200 as Second;
 
+const jwt_with_key_rotation = require("../jwt_with_key_rotation");
+const spy_validateJWTWithKey = jest.spyOn(
+  jwt_with_key_rotation,
+  "validateJWTWithKey"
+);
+
 describe("getGenerateJWT", () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it("should generate a valid JWT", async () => {
     const generateJWT = getGenerateJWT(issuer, aPrimaryKey.privateKey);
 
@@ -28,6 +40,8 @@ describe("getGenerateJWT", () => {
 });
 
 describe("getValidateJWT - Success", () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it("should succeed validating a valid JWT generated with primary key, during standard period", async () => {
     // Setup
     const generateJWT = getGenerateJWT(issuer, aPrimaryKey.privateKey);
@@ -42,6 +56,7 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
     }
   });
 
@@ -60,6 +75,7 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
     }
   });
 
@@ -78,11 +94,14 @@ describe("getValidateJWT - Success", () => {
       )(token.right)();
 
       checkDecodedToken(result);
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(2);
     }
   });
 });
 
 describe("getValidateJWT - Failure", () => {
+  beforeEach(() => jest.clearAllMocks());
+
   const delay = (ms: number): Promise<void> =>
     new Promise(resolve => setTimeout(resolve, ms));
 
@@ -102,12 +121,13 @@ describe("getValidateJWT - Failure", () => {
       expect(result).toMatchObject(
         E.left(E.toError("JsonWebTokenError - invalid signature"))
       );
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
     }
   });
 
   it("should fail validating an invalid JWT with both public primary key and public secondary key, during key rotation period", async () => {
     // Setup
-    const generateJWT = getGenerateJWT(issuer, aSecondaryKey.privateKey);
+    const generateJWT = getGenerateJWT(issuer, aDifferentPrivateKey);
     const token = await generateJWT(aPayload, aTtl)();
 
     expect(E.isRight(token)).toBeTruthy();
@@ -115,12 +135,14 @@ describe("getValidateJWT - Failure", () => {
       // Test
       const result = await getValidateJWT(
         issuer,
-        aPrimaryKey.publicKey
+        aPrimaryKey.publicKey,
+        aSecondaryKey.publicKey
       )(token.right)();
 
       expect(result).toMatchObject(
         E.left(E.toError("JsonWebTokenError - invalid signature"))
       );
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(2);
     }
   });
 
@@ -142,6 +164,7 @@ describe("getValidateJWT - Failure", () => {
       expect(result).toMatchObject(
         E.left(E.toError("TokenExpiredError - jwt expired"))
       );
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
     }
   });
 
@@ -158,7 +181,8 @@ describe("getValidateJWT - Failure", () => {
     if (E.isRight(token)) {
       const result = await getValidateJWT(
         issuer,
-        aPrimaryKey.publicKey
+        aPrimaryKey.publicKey,
+        aSecondaryKey.privateKey
       )(token.right)();
 
       expect(result).toMatchObject(
@@ -168,7 +192,21 @@ describe("getValidateJWT - Failure", () => {
           )
         )
       );
+      expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("should fail validating a malformed JWT", async () => {
+    const result = await getValidateJWT(
+      issuer,
+      aPrimaryKey.publicKey,
+      aSecondaryKey.publicKey
+    )("aMalformedJWT" as NonEmptyString)();
+
+    expect(result).toMatchObject(
+      E.left(E.toError(`JsonWebTokenError - jwt malformed`))
+    );
+    expect(spy_validateJWTWithKey).toHaveBeenCalledTimes(1);
   });
 });
 
