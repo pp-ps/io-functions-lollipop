@@ -4,16 +4,18 @@ import { secureExpressApp } from "@pagopa/io-functions-commons/dist/src/utils/ex
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { cosmosdbInstance } from "../utils/cosmosdb";
-import { LolliPOPKeysModel } from "../model/lollipop_keys";
+import {
+  LolliPOPKeysModel,
+  LOLLIPOPKEYS_COLLECTION_NAME
+} from "../model/lollipop_keys";
 import { getHandler } from "./handler";
 
 // Setup Express
 const app = express();
 secureExpressApp(app);
 
-const PIPPO = "pippo";
 const lollipopPubkeysModel = new LolliPOPKeysModel(
-  cosmosdbInstance.container(PIPPO)
+  cosmosdbInstance.container(LOLLIPOPKEYS_COLLECTION_NAME)
 );
 
 // Add express route
