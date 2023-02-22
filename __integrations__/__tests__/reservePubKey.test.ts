@@ -25,7 +25,7 @@ const MAX_ATTEMPT = 50;
 
 jest.setTimeout(WAIT_MS * MAX_ATTEMPT);
 
-const baseUrl = "http://localhost:7071";
+const baseUrl = "http://function:7071";
 const fetch = getNodeFetch();
 
 // ----------------
