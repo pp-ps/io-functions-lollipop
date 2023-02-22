@@ -1,129 +1,151 @@
-import { Container } from "@azure/cosmos";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { object } from "io-ts";
+import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 import {
   LolliPOPKeysModel,
   PendingLolliPopPubKeys,
-  TTL_VALUE_AFTER_UPDATE
+  TTL_VALUE_FOR_RESERVATION
 } from "../../model/lollipop_keys";
 import { encodeBase64 } from "../../utils/jose";
+import { MASTER_HASH_ALGO } from "../../utils/pubkeys";
 import {
+  aSha256PubKeyThumbprint,
   aSha512PubKey,
   aSha512PubKeyThumbprint
 } from "../../__mocks__/jwkMock";
 import {
   aCosmosResourceMetadata,
-  aRetrievedLolliPopPubKeys,
-  aPendingLolliPopPubKeys
+  mockContainer
 } from "../../__mocks__/lollipopkeysMock";
-import { reserveSingleKey } from "../handler";
+import * as handler from "../handler";
 
-export const mockCreateItem = jest.fn();
-export const mockUpsert = jest.fn();
-export const mockFetchAll = jest.fn().mockImplementation(async () => ({
-  resources: []
-}));
-
-export const containerMock = ({
-  items: {
-    create: mockCreateItem,
-    query: jest.fn(() => ({
-      fetchAll: mockFetchAll
-    })),
-    upsert: mockUpsert
-  }
-} as unknown) as Container;
+const mockCreatePendingLollipop = (pendingLollipop: PendingLolliPopPubKeys) =>
+  Promise.resolve({
+    resource: {
+      ...pendingLollipop,
+      ...aCosmosResourceMetadata,
+      id: `${pendingLollipop.assertionRef}-${"0".repeat(16)}` as NonEmptyString,
+      ttl: TTL_VALUE_FOR_RESERVATION,
+      version: 0 as NonNegativeInteger
+    }
+  });
 
 describe("reserveSingleKey", () => {
   test("GIVEN a working model WHEN reserve a pub_key THEN call the cosmos create and return the RetriveLollipop", async () => {
-    mockFetchAll.mockImplementation(async () => ({
-      resources: []
-    }));
-    mockCreateItem.mockImplementationOnce(
-      (pendingLollipop: PendingLolliPopPubKeys) => ({
-        ...pendingLollipop,
-        ...aCosmosResourceMetadata,
-        id: `${pendingLollipop.assertionRef}-${"0".repeat(
-          16
-        )}` as NonEmptyString,
-        ttl: TTL_VALUE_AFTER_UPDATE,
-        version: 0 as NonNegativeInteger
-      })
-    );
-    const model = new LolliPOPKeysModel(containerMock);
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
+
+    const model = new LolliPOPKeysModel(mockedContainer.container);
     const pubKey = aSha512PubKey;
-    const result = await reserveSingleKey(model)(pubKey)();
+    const result = await handler.reserveSingleKey(model)(pubKey)();
     const assertionRef = `${pubKey.algo}-${aSha512PubKeyThumbprint}`;
     expect(result).toEqual(
       expect.objectContaining({
         right: expect.objectContaining({ assertionRef })
       })
     );
-    expect(mockCreateItem).toHaveBeenCalledWith({
-      assertionRef,
-      pubKey: encodeBase64(pubKey.pub_key),
-      status: PubKeyStatusEnum.PENDING
-    });
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
+      {
+        assertionRef,
+        pubKey: encodeBase64(pubKey.pub_key),
+        status: PubKeyStatusEnum.PENDING,
+        id: `${assertionRef}-0000000000000000`,
+        ttl: TTL_VALUE_FOR_RESERVATION,
+        version: 0
+      },
+      expect.anything()
+    );
+  });
+
+  test("GIVEN a not working model WHEN reserve a pub_key THEN return an Internal Error Response containing a Cosmos Error", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(() => "");
+
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = aSha512PubKey;
+    const result = await handler.reserveSingleKey(model)(pubKey)();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        left: expect.objectContaining({
+          kind: "IResponseErrorInternal",
+          detail: expect.stringContaining("COSMOS_ERROR_RESPONSE")
+        })
+      })
+    );
   });
 });
 
-// export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
-//   inputPubkeys: NewPubKeyPayload
-// ): TE.TaskEither<
-//   IResponseErrorInternal | IResponseErrorConflict | IResponseErrorInternal,
-//   RetrievedLolliPopPubKeys
-// > =>
-//   pipe(
-//     inputPubkeys,
-//     calculateAssertionRef,
-//     TE.map(assertionRef => ({
-//       assertionRef,
-//       pubKey: encodeBase64(inputPubkeys.pub_key) as NonEmptyString,
-//       status: PubKeyStatusEnum.PENDING as const
-//     })),
-//     TE.mapLeft(e => ResponseErrorInternal(e.message)),
-//     TE.chainW(
-//       flow(lollipopPubkeysModel.create, TE.mapLeft(cosmosErrorsToResponse))
-//     )
-//   );
+describe("reservePubKeys", () => {
+  test("GIVEN a working model WHEN reserve a master pub_key THEN store it and return a redirect containing the assertion ref ", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = aSha512PubKey;
+    const result = await handler.reservePubKeys(model)(pubKey);
+    const assertionRef = `${pubKey.algo}-${aSha512PubKeyThumbprint}`;
+    expect(mockedContainer.mock.create).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseSuccessRedirectToResource",
+        detail: `/pubKeys/${assertionRef}`,
+        payload: expect.objectContaining({
+          assertion_ref: assertionRef,
+          pub_key: encodeBase64(pubKey.pub_key)
+        }),
+        resource: expect.objectContaining({ assertion_ref: assertionRef })
+      })
+    );
+  });
 
-// export const reservePubKeys = (
-//   lollipopPubkeysModel: LolliPOPKeysModel
-// ): Handler => (inputPubkeys): ReturnType<Handler> =>
-//   pipe(
-//     inputPubkeys,
-//     pubKeyToAlgos,
-//     RA.map(reserveSingleKey(lollipopPubkeysModel)),
-//     RA.sequence(TE.ApplicativePar),
-//     TE.map(reservedKeys => reservedKeys[0]),
-//     TE.map(reservedKey => ({
-//       assertion_ref: reservedKey.assertionRef,
-//       pub_key: reservedKey.pubKey,
-//       status: reservedKey.status,
-//       ttl: (reservedKey.ttl ?? 0) as NonNegativeInteger,
-//       version: reservedKey.version
-//     })),
-//     TE.map(newPubKey =>
-//       ResponseSuccessRedirectToResource(
-//         newPubKey,
-//         "/pubKeys/{assertion_ref}",
-//         newPubKey
-//       )
-//     ),
-//     TE.toUnion
-//   )();
+  test("GIVEN a working model WHEN reserve a non-master pub_key THEN store both master and non-master pub_key and return a redirect containing the assertion ref ", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = {
+      ...aSha512PubKey,
+      algo: JwkPubKeyHashAlgorithmEnum.sha256
+    };
+    const result = await handler.reservePubKeys(model)(pubKey);
+    const assertionRef = `${pubKey.algo}-${aSha256PubKeyThumbprint}`;
+    const masterAssertionRef = `${MASTER_HASH_ALGO}-${aSha512PubKeyThumbprint}`;
+    expect(mockedContainer.mock.create).toHaveBeenCalledTimes(2);
+    expect(mockedContainer.mock.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ assertionRef: masterAssertionRef }),
+      expect.anything()
+    );
+    expect(mockedContainer.mock.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ assertionRef }),
+      expect.anything()
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseSuccessRedirectToResource",
+        detail: `/pubKeys/${assertionRef}`,
+        payload: expect.objectContaining({
+          assertion_ref: assertionRef,
+          pub_key: encodeBase64(pubKey.pub_key)
+        }),
+        resource: expect.objectContaining({ assertion_ref: assertionRef })
+      })
+    );
+  });
 
-// export const getHandler = (
-//   lollipopPubkeysModel: LolliPOPKeysModel
-// ): express.RequestHandler => {
-//   const handler = reservePubKeys(lollipopPubkeysModel);
-//   const middlewaresWrap = withRequestMiddlewares(
-//     ContextMiddleware(),
-//     RequiredBodyPayloadMiddleware(NewPubKeyPayload)
-//   );
-//   return wrapRequestHandler(
-//     middlewaresWrap((_, inputPubkeys) => handler(inputPubkeys))
-//   );
-// };
+  test("GIVEN a not working model WHEN reserve a master pub_key THEN return an internal error response containing a Cosmos Error", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(() => "");
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = aSha512PubKey;
+    const result = await handler.reservePubKeys(model)(pubKey);
+    expect(mockedContainer.mock.create).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseErrorInternal",
+        detail: expect.stringContaining("COSMOS_ERROR_RESPONSE")
+      })
+    );
+  });
+});

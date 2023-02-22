@@ -11,7 +11,7 @@ import {
   ResponseErrorInternal,
   ResponseSuccessRedirectToResource
 } from "@pagopa/ts-commons/lib/responses";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as RA from "fp-ts/ReadonlyArray";
 import * as TE from "fp-ts/TaskEither";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -57,12 +57,11 @@ export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
       status: PubKeyStatusEnum.PENDING as const
     })),
     TE.mapLeft(e => ResponseErrorInternal(e.message)),
-    TE.map(x => {
-      console.log("pre-create: " + JSON.stringify(x));
-      return x;
-    }),
-    TE.chain(
-      flow(lollipopPubkeysModel.create, TE.mapLeft(cosmosErrorsToResponse))
+    TE.chain(pendingPubKey =>
+      pipe(
+        lollipopPubkeysModel.create(pendingPubKey),
+        TE.mapLeft(cosmosErrorsToResponse)
+      )
     )
   );
 
@@ -85,7 +84,7 @@ export const reservePubKeys = (
     TE.map(newPubKey =>
       ResponseSuccessRedirectToResource(
         newPubKey,
-        "/pubKeys/{assertion_ref}",
+        `/pubKeys/${newPubKey.assertion_ref}`,
         newPubKey
       )
     ),
