@@ -14,7 +14,7 @@ import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
-import { withFallback } from "io-ts-types";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 // ----------------------------
 // JWT Configuration
@@ -24,7 +24,7 @@ export const JWTConfig = t.intersection([
   t.type({
     ISSUER: NonEmptyString,
     // Default 15min = 60s * 15m
-    JWT_TTL: withFallback(NumberFromString, 900),
+    JWT_TTL: withDefault(t.string, "900").pipe(NumberFromString),
 
     PRIMARY_PRIVATE_KEY: NonEmptyString,
     PRIMARY_PUBLIC_KEY: NonEmptyString
