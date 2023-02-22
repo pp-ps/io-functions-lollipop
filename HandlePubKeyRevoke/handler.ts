@@ -122,9 +122,11 @@ export const handleRevoke = (
                     })
                   ),
                   RA.sequence(TE.ApplicativeSeq),
-                  TE.mapLeft(_ =>
+                  TE.mapLeft(err =>
                     toTransientFailure(
-                      Error("Cannot perform upsert CosmosDB")
+                      Error(
+                        `Cannot perform upsert CosmosDB: ${JSON.stringify(err)}`
+                      )
                     )()
                   )
                 )
