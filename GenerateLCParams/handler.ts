@@ -15,6 +15,7 @@ import {
   IResponseErrorValidation,
   IResponseSuccessJson,
   ResponseErrorConflict,
+  ResponseErrorForbiddenNotAuthorized,
   ResponseErrorInternal,
   ResponseErrorNotFound,
   ResponseSuccessJson
@@ -94,12 +95,8 @@ export const GenerateLCParamsHandler = (
     TE.chainW(
       flow(
         ValidRetrievedLolliPopPubKeys.decode,
-        E.mapLeft(() =>
-          ResponseErrorConflict(
-            "Cannot generate LC params for a NOT VALID pubKey"
-          )
-        ),
-        E.chain(
+        E.mapLeft(() => ResponseErrorForbiddenNotAuthorized),
+        E.chainW(
           E.fromPredicate(
             usedPubKeyDocument =>
               // eslint-disable-next-line no-underscore-dangle
