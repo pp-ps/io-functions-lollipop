@@ -1,14 +1,23 @@
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import * as RA from "fp-ts/ReadonlyArray";
-import { NewPubKeyPayload } from "../generated/definitions/internal/NewPubKeyPayload";
-import { JwkPubKeyHashAlgorithmEnum } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
+import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
+import {
+  JwkPubKeyHashAlgorithm,
+  JwkPubKeyHashAlgorithmEnum
+} from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { calculateThumbprint } from "../utils/jose";
 import { AssertionRef } from "../generated/definitions/external/AssertionRef";
 
 export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
+
+type PubKeyToAlgo = {
+  readonly algo: JwkPubKeyHashAlgorithm;
+  readonly pub_key: JwkPublicKey;
+};
 
 /**
  * Check if the input public key payload algo is the master one (current is sha512).
@@ -20,7 +29,7 @@ export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
 export const pubKeyToAlgos = ({
   algo,
   pub_key
-}: NewPubKeyPayload): ReadonlyArray<NewPubKeyPayload> =>
+}: PubKeyToAlgo): ReadonlyArray<PubKeyToAlgo> =>
   pipe(
     algo === MASTER_HASH_ALGO ? [algo] : [algo, MASTER_HASH_ALGO],
     RA.map(targetAlgo => ({ algo: targetAlgo, pub_key }))
@@ -35,7 +44,7 @@ export const pubKeyToAlgos = ({
 export const calculateAssertionRef = ({
   algo,
   pub_key
-}: NewPubKeyPayload): TE.TaskEither<Error, AssertionRef> =>
+}: PubKeyToAlgo): TE.TaskEither<Error, AssertionRef> =>
   pipe(
     pub_key,
     calculateThumbprint(algo),
