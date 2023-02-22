@@ -25,7 +25,7 @@ Finally you can run your integration test with
 ```bash
 COSMOSDB_URI=https://localhost:3000/ \
 COSMOSDB_KEY="dummy key" \
-COSMOSDB_DATABASE_NAME=integration-tests \
+COSMOSDB_NAME=integration-tests \
 STORAGE_CONN_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;" \
 yarn test:integration:model
 ```
