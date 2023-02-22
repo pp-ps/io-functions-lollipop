@@ -102,8 +102,10 @@ export const handleRevoke = (
         lollipopKeysModel.findLastVersionByModelId([
           revokeAssertionRefInfo.assertion_ref
         ]),
-        TE.mapLeft(_ =>
-          toTransientFailure(Error("Cannot perform find on CosmosDB"))()
+        TE.mapLeft(err =>
+          toTransientFailure(
+            Error(`Cannot perform find on CosmosDB: ${JSON.stringify(err)}`)
+          )()
         ),
         TE.map(O.chainEitherK(NotPendingLolliPopPubKeys.decode)),
         TE.chain(
