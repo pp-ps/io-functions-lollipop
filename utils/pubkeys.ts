@@ -8,24 +8,37 @@ import { JwkPubKeyHashAlgorithmEnum } from "../generated/definitions/internal/Jw
 import { calculateThumbprint } from "../utils/jose";
 import { AssertionRef } from "../generated/definitions/external/AssertionRef";
 
-const masterHashAlgo = JwkPubKeyHashAlgorithmEnum.sha512;
+export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
 
+/**
+ * Check if the input public key payload algo is the master one (current is sha512).
+ * If the check succeed, returns an array containing the input payload, othrwise returns an array containig both the input payload and the input payload with algo set to master.
+ *
+ * @param publicKeyPayload a public key payload containig an hash algorithm and a public key
+ * @returns
+ */
 export const pubKeyToAlgos = ({
   algo,
   pub_key
 }: NewPubKeyPayload): ReadonlyArray<NewPubKeyPayload> =>
   pipe(
-    algo === masterHashAlgo ? [algo] : [algo, masterHashAlgo],
+    algo === MASTER_HASH_ALGO ? [algo] : [algo, MASTER_HASH_ALGO],
     RA.map(targetAlgo => ({ algo: targetAlgo, pub_key }))
   );
 
+/**
+ * Calculate the assertion ref for the input payload. The assertion ref is a string in the format '<algo>-<thumbprint>'.
+ *
+ * @param publicKeyPayload a public key payload containig an hash algorithm and a public key
+ * @returns an assertion ref
+ */
 export const calculateAssertionRef = ({
   algo,
   pub_key
 }: NewPubKeyPayload): TE.TaskEither<Error, AssertionRef> =>
   pipe(
     pub_key,
-    calculateThumbprint,
+    calculateThumbprint(algo),
     TE.map(thumbprint => `${String(algo)}-${thumbprint}`),
     TE.chainEitherKW(
       flow(

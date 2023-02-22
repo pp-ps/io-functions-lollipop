@@ -1,5 +1,7 @@
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import {
+  aSha256PubKeyThumbprint,
+  aSha384PubKeyThumbprint,
   aSha512PubKey,
   aSha512PubKeyThumbprint
 } from "../../__mocks__/jwkMock";
@@ -41,13 +43,19 @@ describe("calculateAssertionRef", () => {
       )}-${aSha512PubKeyThumbprint}`
     },
     {
+      pubKey: { ...aSha512PubKey, algo: JwkPubKeyHashAlgorithmEnum.sha384 },
+      expected: `${String(
+        JwkPubKeyHashAlgorithmEnum.sha384
+      )}-${aSha384PubKeyThumbprint}`
+    },
+    {
       pubKey: { ...aSha512PubKey, algo: JwkPubKeyHashAlgorithmEnum.sha256 },
       expected: `${String(
         JwkPubKeyHashAlgorithmEnum.sha256
-      )}-${aSha512PubKeyThumbprint}`
+      )}-${aSha256PubKeyThumbprint}`
     }
   ])(
-    "GIVEN a pub_key WHEN calculateAssertionRef THEN return the assertion ref",
+    "GIVEN a pub_key $pubKey WHEN calculateAssertionRef THEN return the assertion ref",
     async ({ pubKey, expected }) => {
       const assertionRef = await calculateAssertionRef(pubKey)();
       expect(assertionRef).toEqual(
@@ -61,7 +69,7 @@ describe("calculateAssertionRef", () => {
   test("GIVEN a not working jose WHEN calculateAssertionRef is called THEN return the assertion ref", async () => {
     jest
       .spyOn(jose, "calculateThumbprint")
-      .mockImplementation(() => TE.left(anError));
+      .mockImplementation(() => () => TE.left(anError));
 
     const pubKey = aSha512PubKey;
     const assertionRef = await calculateAssertionRef(pubKey)();
