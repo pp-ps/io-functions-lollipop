@@ -56,6 +56,7 @@ services:
       - "../model:/usr/src/model"
       - "../generated:/usr/src/generated"
       - "../__mocks__:/usr/src/__mocks__"
+      - "../node_modules:/usr/src/node_modules"
     depends_on:
       - cosmosdb
       - storage-account
