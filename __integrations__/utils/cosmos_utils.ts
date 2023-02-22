@@ -19,9 +19,7 @@ import { inspect } from "util";
 const endpoint = getRequiredStringEnv("COSMOSDB_URI");
 const key = getRequiredStringEnv("COSMOSDB_KEY");
 const storageConnectionString = getRequiredStringEnv("STORAGE_CONN_STRING");
-export const cosmosDatabaseName = getRequiredStringEnv(
-  "COSMOSDB_DATABASE_NAME"
-);
+export const cosmosDatabaseName = getRequiredStringEnv("COSMOSDB_NAME");
 
 //in jest 27 fail is no longer defined, we can define this function as workaround
 function fail(reason = "fail was called in a test."): never {
