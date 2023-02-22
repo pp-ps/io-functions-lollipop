@@ -4,6 +4,10 @@ import { pipe } from "fp-ts/lib/function";
 import { Context } from "@azure/functions";
 import { TelemetryClient, trackException } from "./appinsights";
 
+export const assertNever = (x: never): never => {
+  throw new Error(`Unexpected object: ${JSON.stringify(x)}`);
+};
+
 export const TransientFailure = t.interface({
   kind: t.literal("TRANSIENT"),
   reason: t.string

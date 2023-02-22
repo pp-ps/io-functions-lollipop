@@ -246,7 +246,8 @@ describe("handleRevoke", () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        kind: "PERMANENT"
+        kind: "PERMANENT",
+        reason: expect.stringContaining("Cannot decode used jwk")
       })
     );
   });

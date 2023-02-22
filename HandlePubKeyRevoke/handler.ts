@@ -5,11 +5,8 @@ import { constVoid, flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as RA from "fp-ts/ReadonlyArray";
-import * as B from "fp-ts/boolean";
 import * as O from "fp-ts/Option";
 import { RevokeAssertionRefInfo } from "@pagopa/io-functions-commons/dist/src/entities/revoke_assertion_ref_info";
-import * as jose from "jose";
-import { JwkPublicKeyFromToken } from "@pagopa/ts-commons/lib/jwk";
 import { TelemetryClient, trackException } from "../utils/appinsights";
 import { errorsToError } from "../utils/conversions";
 import {
@@ -23,10 +20,9 @@ import {
   LolliPOPKeysModel,
   NotPendingLolliPopPubKeys
 } from "../model/lollipop_keys";
-import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
-import { AssertionRefSha512 } from "../generated/definitions/internal/AssertionRefSha512";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 import { JwkPubKeyHashAlgorithm } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
+import { getAllAssertionsRef } from "../utils/lollipopKeys";
 
 /**
  * Based on a previous retrieved LollipopPubKey that match with assertionRef retrieved on queue
@@ -42,51 +38,21 @@ const extractPubKeysToRevoke = (
   notPendingLollipopPubKeys: NotPendingLolliPopPubKeys
 ): TE.TaskEither<Failure, ReadonlyArray<NotPendingLolliPopPubKeys>> =>
   pipe(
-    notPendingLollipopPubKeys.assertionRef,
-    AssertionRefSha512.is,
-    B.fold(
-      () =>
-        pipe(
-          notPendingLollipopPubKeys.pubKey,
-          JwkPublicKeyFromToken.decode,
-          TE.fromEither,
-          TE.mapLeft(() =>
-            toPermanentFailure(Error("Cannot decode stored jwk"))()
-          ),
-          TE.chain(jwkPublicKey =>
+    getAllAssertionsRef(masterAlgo, notPendingLollipopPubKeys),
+    TE.mapLeft(e => toPermanentFailure(e)()),
+    TE.chain(({ master, used }) =>
+      pipe(
+        used,
+        O.fromNullable,
+        O.fold(
+          () => TE.of([notPendingLollipopPubKeys]),
+          _ =>
             pipe(
-              TE.tryCatch(
-                () => jose.calculateJwkThumbprint(jwkPublicKey, masterAlgo),
-                flow(E.toError, err =>
-                  toPermanentFailure(
-                    Error(
-                      `Cannot calculate master key jwk's thumbprint|${err.message}`
-                    )
-                  )()
-                )
-              ),
-              TE.chainEitherK(
-                flow(
-                  thumbprint => `${masterAlgo}-${thumbprint}`,
-                  AssertionRef.decode,
-                  E.mapLeft(() =>
-                    toPermanentFailure(
-                      Error("Cannot decode master AssertionRef")
-                    )()
-                  )
-                )
-              ),
-              TE.chain(masterAssertionRef =>
-                pipe(
-                  lollipopKeysModel.findLastVersionByModelId([
-                    masterAssertionRef
-                  ]),
-                  TE.mapLeft(_ =>
-                    toTransientFailure(
-                      Error("Cannot perform find masterKey on CosmosDB")
-                    )()
-                  )
-                )
+              lollipopKeysModel.findLastVersionByModelId([master]),
+              TE.mapLeft(() =>
+                toTransientFailure(
+                  Error("Cannot perform find masterKey on CosmosDB")
+                )()
               ),
               TE.chain(
                 TE.fromOption(() =>
@@ -98,7 +64,7 @@ const extractPubKeysToRevoke = (
               TE.chainEitherK(
                 flow(
                   NotPendingLolliPopPubKeys.decode,
-                  E.mapLeft(_ =>
+                  E.mapLeft(() =>
                     toPermanentFailure(
                       Error("Cannot decode a VALID master lollipopPubKey")
                     )()
@@ -110,9 +76,8 @@ const extractPubKeysToRevoke = (
                 notPendingLollipopPubKeys
               ])
             )
-          )
-        ),
-      () => TE.of([notPendingLollipopPubKeys])
+        )
+      )
     )
   );
 
