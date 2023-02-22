@@ -51,6 +51,9 @@ export const getGenerateJWT: GetGenerateJWT = (
     )
   );
 
+export const errorIsInvalidSignatureError = (error: Error): boolean =>
+  error.message === "JsonWebTokenError - invalid signature";
+
 /**
  * JWT Validation
  */
@@ -72,6 +75,7 @@ export const getValidateJWT: GetValidateJWT = (
       pipe(
         secondaryPublicKey,
         O.fromNullable,
+        O.chain(O.fromPredicate(() => errorIsInvalidSignatureError(err))),
         O.map(key => validateJWTWithKey(issuer, key)(token)),
         O.getOrElse(() => TE.left(err))
       )
