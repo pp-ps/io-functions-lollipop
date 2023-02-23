@@ -17,8 +17,12 @@ import * as TE from "fp-ts/TaskEither";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { encodeBase64 } from "../utils/jose";
-import { calculateAssertionRef, pubKeyToAlgos } from "../utils/pubkeys";
+import { encodeBase64 } from "../utils/thumbprint";
+import {
+  calculateAssertionRef,
+  PubKeyToAlgo,
+  pubKeyToAlgos
+} from "../utils/pubkeys";
 import { NewPubKey } from "../generated/definitions/internal/NewPubKey";
 import { NewPubKeyPayload } from "../generated/definitions/internal/NewPubKeyPayload";
 import {

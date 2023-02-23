@@ -9,12 +9,12 @@ import {
   JwkPubKeyHashAlgorithm,
   JwkPubKeyHashAlgorithmEnum
 } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
-import { calculateThumbprint } from "../utils/jose";
 import { AssertionRef } from "../generated/definitions/external/AssertionRef";
+import { calculateThumbprint } from "./thumbprint";
 
 export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
 
-type PubKeyToAlgo = {
+export type PubKeyToAlgo = {
   readonly algo: JwkPubKeyHashAlgorithm;
   readonly pub_key: JwkPublicKey;
 };
