@@ -125,7 +125,7 @@ describe("ReservePubKey", () => {
     expect(failWith384.status).toEqual(409);
   });
 
-  test("GIVEN an malformed public key WHEN reserve the key THEN return a bad request", async () => {
+  test("GIVEN a malformed public key WHEN reserve the key THEN return a bad request", async () => {
     const reserve = await fetchReservePubKey({ wrong: "wrong" });
     expect(reserve.status).toEqual(400);
   });
