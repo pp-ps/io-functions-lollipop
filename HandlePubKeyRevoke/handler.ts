@@ -8,6 +8,7 @@ import * as RA from "fp-ts/ReadonlyArray";
 import * as O from "fp-ts/Option";
 import { RevokeAssertionRefInfo } from "@pagopa/io-functions-commons/dist/src/entities/revoke_assertion_ref_info";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { JwkPublicKeyFromToken } from "@pagopa/ts-commons/lib/jwk";
 import { TelemetryClient, trackException } from "../utils/appinsights";
 import { errorsToError } from "../utils/conversions";
 import {
@@ -24,7 +25,10 @@ import {
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 import { JwkPubKeyHashAlgorithm } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
-import { getAllAssertionsRef } from "../utils/lollipopKeys";
+import {
+  getAlgoFromAssertionRef,
+  getAllAssertionsRef
+} from "../utils/lollipopKeys";
 
 /**
  * Based on a previous retrieved LollipopPubKey that match with assertionRef retrieved on queue
@@ -41,12 +45,20 @@ const extractPubKeysToRevoke = (
   notPendingLollipopPubKeys: NotPendingLolliPopPubKeys
 ): TE.TaskEither<Failure, ReadonlyArray<NotPendingLolliPopPubKeys>> =>
   pipe(
-    getAllAssertionsRef(
-      masterAlgo,
-      notPendingLollipopPubKeys.assertionRef,
-      notPendingLollipopPubKeys.pubKey
+    notPendingLollipopPubKeys.pubKey,
+    JwkPublicKeyFromToken.decode,
+    TE.fromEither,
+    TE.mapLeft(() => toPermanentFailure(Error("Cannot decode used jwk"))()),
+    TE.chain(decodedJwk =>
+      pipe(
+        getAllAssertionsRef(
+          masterAlgo,
+          getAlgoFromAssertionRef(notPendingLollipopPubKeys.assertionRef),
+          decodedJwk
+        ),
+        TE.mapLeft(e => toPermanentFailure(e)())
+      )
     ),
-    TE.mapLeft(e => toPermanentFailure(e)()),
     TE.chain(({ master, used }) =>
       pipe(
         used,

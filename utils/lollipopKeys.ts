@@ -1,8 +1,9 @@
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as B from "fp-ts/boolean";
+import * as O from "fp-ts/Option";
 import { flow, pipe } from "fp-ts/lib/function";
-import { JwkPublicKeyFromToken } from "@pagopa/ts-commons/lib/jwk";
+import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import * as jose from "jose";
 import * as t from "io-ts";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -42,49 +43,76 @@ const getMasterAssertionRefType = (
   }
 };
 
+export const calculateAssertionRef = (algo: JwkPubKeyHashAlgorithm) => (
+  jwkPublicKey: JwkPublicKey
+): TE.TaskEither<Error, AssertionRef> =>
+  pipe(
+    TE.tryCatch(
+      () => jose.calculateJwkThumbprint(jwkPublicKey, algo),
+      flow(E.toError, err =>
+        Error(`Cannot calculate master key jwk's thumbprint|${err.message}`)
+      )
+    ),
+    TE.chainEitherK(
+      flow(
+        thumbprint => `${algo}-${thumbprint}`,
+        AssertionRef.decode,
+        E.mapLeft(() => Error("Cannot decode master AssertionRef"))
+      )
+    )
+  );
+
+export const algoToAssertionRefSet = new Set([
+  { algo: JwkPubKeyHashAlgorithmEnum.sha256, type: AssertionRefSha256 },
+  { algo: JwkPubKeyHashAlgorithmEnum.sha384, type: AssertionRefSha384 },
+  { algo: JwkPubKeyHashAlgorithmEnum.sha512, type: AssertionRefSha512 }
+]);
+
+export const getAlgoFromAssertionRef = (
+  assertionRef: AssertionRef
+): JwkPubKeyHashAlgorithm =>
+  pipe(
+    Array.from(algoToAssertionRefSet),
+    ar => ar.find(entry => entry.type.is(assertionRef)),
+    O.fromNullable,
+    O.map(pubKeyHashAlgo => pubKeyHashAlgo.algo),
+    O.getOrElseW(() => void 0 as never)
+  );
+
+export const encodeJwkBase64 = (jwk: JwkPublicKey): NonEmptyString =>
+  pipe(
+    jwk,
+    JSON.stringify,
+    stringifiedJwk => jose.base64url.encode(stringifiedJwk) as NonEmptyString
+  );
+
 /**
  * Return all assertionsRef related to a given used pubKey
  */
 export const getAllAssertionsRef = (
   masterAlgo: JwkPubKeyHashAlgorithm,
-  usedAssertionRef: AssertionRef,
-  usedPubKey: NonEmptyString
+  usedAlgo: JwkPubKeyHashAlgorithm,
+  jwkPubKey: JwkPublicKey
 ): TE.TaskEither<Error, AssertionRefByType> =>
   pipe(
-    usedAssertionRef,
-    getMasterAssertionRefType(masterAlgo).is,
-    B.fold(
-      () =>
-        pipe(
-          usedPubKey,
-          JwkPublicKeyFromToken.decode,
-          TE.fromEither,
-          TE.mapLeft(() => Error("Cannot decode used jwk")),
-          TE.chain(jwkPublicKey =>
+    jwkPubKey,
+    calculateAssertionRef(usedAlgo),
+    TE.chain(usedAssertionRef =>
+      pipe(
+        usedAssertionRef,
+        getMasterAssertionRefType(masterAlgo).is,
+        B.fold(
+          () =>
             pipe(
-              TE.tryCatch(
-                () => jose.calculateJwkThumbprint(jwkPublicKey, masterAlgo),
-                flow(E.toError, err =>
-                  Error(
-                    `Cannot calculate master key jwk's thumbprint|${err.message}`
-                  )
-                )
-              ),
-              TE.chainEitherK(
-                flow(
-                  thumbprint => `${masterAlgo}-${thumbprint}`,
-                  AssertionRef.decode,
-                  E.mapLeft(() => Error("Cannot decode master AssertionRef"))
-                )
-              )
-            )
-          ),
-          TE.map(validMasterLollipopPubKeyAssertionRef => ({
-            master: validMasterLollipopPubKeyAssertionRef,
-            used: usedAssertionRef
-          }))
-        ),
-
-      () => TE.of({ master: usedAssertionRef })
+              jwkPubKey,
+              calculateAssertionRef(masterAlgo),
+              TE.map(validMasterLollipopPubKeyAssertionRef => ({
+                master: validMasterLollipopPubKeyAssertionRef,
+                used: usedAssertionRef
+              }))
+            ),
+          () => TE.of({ master: usedAssertionRef })
+        )
+      )
     )
   );
