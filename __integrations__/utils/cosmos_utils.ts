@@ -12,7 +12,7 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { getRequiredStringEnv } from "../../utils/env";
+import { getRequiredStringEnv } from "../utils/env";
 import { PromiseType } from "@pagopa/ts-commons/lib/types";
 import { inspect } from "util";
 
