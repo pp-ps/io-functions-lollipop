@@ -21,7 +21,9 @@ const lollipopKeysModel = new LolliPOPKeysModel(
 
 const config = getConfigOrThrow();
 
-const assertionBlobService = createBlobService(config.AzureWebJobsStorage);
+const assertionBlobService = createBlobService(
+  config.LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
+);
 
 // Setup Express
 const app = express();
