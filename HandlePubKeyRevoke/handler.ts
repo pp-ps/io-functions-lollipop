@@ -4,7 +4,7 @@ import { Context } from "@azure/functions";
 import { constVoid, flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
-import * as A from "fp-ts/Apply";
+import * as RA from "fp-ts/ReadonlyArray";
 import * as O from "fp-ts/Option";
 import { RevokeAssertionRefInfo } from "@pagopa/io-functions-commons/dist/src/entities/revoke_assertion_ref_info";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
@@ -26,16 +26,12 @@ import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus
 import { JwkPubKeyHashAlgorithm } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { getAllAssertionsRef } from "../utils/lollipopKeys";
 
-interface IPubKeysByType {
-  readonly masterPubKey: NotPendingLolliPopPubKeys;
-  readonly usedPubKey?: NotPendingLolliPopPubKeys;
-}
 /**
  * Based on a previous retrieved LollipopPubKey that match with assertionRef retrieved on queue
  * this function extracts all lollipopPubKeys to be revoked including master key
  *
  * @param lollipopKeysModel
- * @returns an object containing master and optionally used lollipopPubKeys to be revoked
+ * @returns an array containing master and optionally used lollipopPubKeys to be revoked
  *
  */
 const extractPubKeysToRevoke = (
@@ -43,7 +39,7 @@ const extractPubKeysToRevoke = (
   masterAlgo: JwkPubKeyHashAlgorithm
 ) => (
   notPendingLollipopPubKeys: NotPendingLolliPopPubKeys
-): TE.TaskEither<Failure, IPubKeysByType> =>
+): TE.TaskEither<Failure, ReadonlyArray<NotPendingLolliPopPubKeys>> =>
   pipe(
     getAllAssertionsRef(
       masterAlgo,
@@ -56,7 +52,7 @@ const extractPubKeysToRevoke = (
         used,
         O.fromNullable,
         O.fold(
-          () => TE.of({ masterPubKey: notPendingLollipopPubKeys }),
+          () => TE.of([notPendingLollipopPubKeys]),
           _ =>
             pipe(
               lollipopKeysModel.findLastVersionByModelId([master]),
@@ -82,10 +78,10 @@ const extractPubKeysToRevoke = (
                   )
                 )
               ),
-              TE.map(validMasterLollipopPubKeys => ({
-                masterPubKey: validMasterLollipopPubKeys,
-                usedPubKey: notPendingLollipopPubKeys
-              }))
+              TE.map(validMasterLollipopPubKeys => [
+                validMasterLollipopPubKeys,
+                notPendingLollipopPubKeys
+              ])
             )
         )
       )
@@ -130,18 +126,8 @@ export const handleRevoke = (
               extractPubKeysToRevoke(lollipopKeysModel, masterAlgo),
               TE.chainW(
                 flow(
-                  pubKeysByType => ({
-                    master: revokePubKey(lollipopKeysModel)(
-                      pubKeysByType.masterPubKey
-                    ),
-                    used: pipe(
-                      pubKeysByType.usedPubKey,
-                      O.fromNullable,
-                      O.map(revokePubKey(lollipopKeysModel)),
-                      O.getOrElseW(() => TE.right(void 0))
-                    )
-                  }),
-                  A.sequenceS(TE.ApplicativePar),
+                  RA.map(revokePubKey(lollipopKeysModel)),
+                  RA.sequence(TE.ApplicativePar),
                   TE.mapLeft(err =>
                     toTransientFailure(
                       Error(
