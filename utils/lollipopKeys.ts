@@ -4,9 +4,7 @@ import * as B from "fp-ts/boolean";
 import * as O from "fp-ts/Option";
 import { flow, pipe } from "fp-ts/lib/function";
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
-import * as jose from "jose";
 import * as t from "io-ts";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   JwkPubKeyHashAlgorithm,
   JwkPubKeyHashAlgorithmEnum
@@ -16,6 +14,9 @@ import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { AssertionRefSha384 } from "../generated/definitions/internal/AssertionRefSha384";
 import { AssertionRefSha256 } from "../generated/definitions/internal/AssertionRefSha256";
 import { assertNever } from "./errors";
+import { calculateThumbprint } from "./thumbprint";
+
+export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
 
 export const AssertionRefByType = t.intersection([
   t.type({
@@ -47,12 +48,8 @@ export const calculateAssertionRef = (algo: JwkPubKeyHashAlgorithm) => (
   jwkPublicKey: JwkPublicKey
 ): TE.TaskEither<Error, AssertionRef> =>
   pipe(
-    TE.tryCatch(
-      () => jose.calculateJwkThumbprint(jwkPublicKey, algo),
-      flow(E.toError, err =>
-        Error(`Cannot calculate master key jwk's thumbprint|${err.message}`)
-      )
-    ),
+    jwkPublicKey,
+    calculateThumbprint(algo),
     TE.chainEitherK(
       flow(
         thumbprint => `${algo}-${thumbprint}`,
@@ -77,13 +74,6 @@ export const getAlgoFromAssertionRef = (
     O.fromNullable,
     O.map(pubKeyHashAlgo => pubKeyHashAlgo.algo),
     O.getOrElseW(() => void 0 as never)
-  );
-
-export const encodeJwkBase64 = (jwk: JwkPublicKey): NonEmptyString =>
-  pipe(
-    jwk,
-    JSON.stringify,
-    stringifiedJwk => jose.base64url.encode(stringifiedJwk) as NonEmptyString
   );
 
 /**
