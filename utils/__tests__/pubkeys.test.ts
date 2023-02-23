@@ -69,7 +69,7 @@ describe("calculateAssertionRef", () => {
   test("GIVEN a not working jose WHEN calculateAssertionRef is called THEN return the assertion ref", async () => {
     jest
       .spyOn(jose, "calculateThumbprint")
-      .mockImplementation(() => () => TE.left(anError));
+      .mockImplementationOnce(() => () => TE.left(anError));
 
     const pubKey = aSha512PubKey;
     const assertionRef = await calculateAssertionRef(pubKey)();
