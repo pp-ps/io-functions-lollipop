@@ -31,7 +31,7 @@ import {
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
-type Handler = (
+type IReservePubKeyHandler = (
   inputPubkeys: NewPubKeyPayload
 ) => Promise<
   | IResponseSuccessRedirectToResource<NewPubKey, NewPubKey>
@@ -71,7 +71,7 @@ export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
 
 export const reservePubKeys = (
   lollipopPubkeysModel: LolliPOPKeysModel
-): Handler => (inputPubkeys): ReturnType<Handler> =>
+): IReservePubKeyHandler => (inputPubkeys): ReturnType<IReservePubKeyHandler> =>
   pipe(
     inputPubkeys,
     pubKeyToAlgos,
