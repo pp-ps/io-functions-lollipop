@@ -62,7 +62,7 @@ beforeEach(() => {
 // Tests
 // -------------------------
 
-const aPubKey = {
+const aReservePubKeyPayload = {
   algo: "sha256",
   pub_key: {
     kty: "EC",
@@ -71,10 +71,10 @@ const aPubKey = {
     y: "lLsw82Q414zPWPluI5BmdKHK6XbFfinc8aRqbZCEv0A"
   }
 };
-const aPubKeyAssertionRef =
+const aReservePubKeyPayloadAssertionRef =
   "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";
 
-const anotherPubKey = {
+const anotherReservePubKeyPayload = {
   algo: "sha256",
   pub_key: {
     kty: "EC",
@@ -96,30 +96,31 @@ const fetchReservePubKey = (body: unknown) =>
   });
 
 describe("ReservePubKey", () => {
-
   test("GIVEN a new public key WHEN reserve the key THEN return a success contianing the assertion ref", async () => {
-    const result = await fetchReservePubKey(aPubKey);
+    const result = await fetchReservePubKey(aReservePubKeyPayload);
     const content = await result.json();
     expect(content).toEqual(
-      expect.objectContaining({ assertion_ref: aPubKeyAssertionRef })
+      expect.objectContaining({
+        assertion_ref: aReservePubKeyPayloadAssertionRef
+      })
     );
   });
 
   test("GIVEN an already reserved public key WHEN reserve the key with any algo THEN return a conflict", async () => {
-    const reserve = await fetchReservePubKey(anotherPubKey);
+    const reserve = await fetchReservePubKey(anotherReservePubKeyPayload);
     expect(reserve.status).toEqual(201);
 
-    const fail = await fetchReservePubKey(anotherPubKey);
+    const fail = await fetchReservePubKey(anotherReservePubKeyPayload);
     expect(fail.status).toEqual(409);
 
     const failWith512 = await fetchReservePubKey({
-      ...anotherPubKey,
+      ...anotherReservePubKeyPayload,
       algo: "sha512"
     });
     expect(failWith512.status).toEqual(409);
 
     const failWith384 = await fetchReservePubKey({
-      ...anotherPubKey,
+      ...anotherReservePubKeyPayload,
       algo: "sha384"
     });
     expect(failWith384.status).toEqual(409);
