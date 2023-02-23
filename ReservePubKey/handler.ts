@@ -95,7 +95,7 @@ export const reservePubKeys = (
     TE.toUnion
   )();
 
-export const getHandler = (
+export const getReservePubKeyHandler = (
   lollipopPubkeysModel: LolliPOPKeysModel
 ): express.RequestHandler => {
   const handler = reservePubKeys(lollipopPubkeysModel);

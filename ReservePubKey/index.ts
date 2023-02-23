@@ -8,7 +8,7 @@ import {
   LolliPOPKeysModel,
   LOLLIPOPKEYS_COLLECTION_NAME
 } from "../model/lollipop_keys";
-import { getHandler } from "./handler";
+import { getReservePubKeyHandler } from "./handler";
 
 // Setup Express
 const app = express();
@@ -19,7 +19,7 @@ const lollipopPubkeysModel = new LolliPOPKeysModel(
 );
 
 // Add express route
-app.post("/api/v1/pubkeys", getHandler(lollipopPubkeysModel));
+app.post("/api/v1/pubkeys", getReservePubKeyHandler(lollipopPubkeysModel));
 
 const azureFunctionHandler = createAzureFunctionHandler(app);
 
