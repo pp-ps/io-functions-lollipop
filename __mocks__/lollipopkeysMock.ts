@@ -9,7 +9,8 @@ import {
   PendingLolliPopPubKeys,
   LolliPopPubKeys,
   RetrievedLolliPopPubKeys,
-  TTL_VALUE_AFTER_UPDATE
+  TTL_VALUE_AFTER_UPDATE,
+  NotPendingLolliPopPubKeys
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
@@ -31,7 +32,7 @@ export const aPendingLolliPopPubKeys: PendingLolliPopPubKeys = {
   status: PubKeyStatusEnum.PENDING
 };
 
-export const aLolliPopPubKeys: LolliPopPubKeys = {
+export const aLolliPopPubKeys: NotPendingLolliPopPubKeys = {
   assertionFileName: anAssertionFileName,
   assertionRef: anAssertionRef,
   assertionType: AssertionTypeEnum.OIDC,

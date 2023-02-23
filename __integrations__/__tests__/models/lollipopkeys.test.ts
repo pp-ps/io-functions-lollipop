@@ -1,10 +1,14 @@
 import { createContext } from "../../utils/cosmos_utils";
 import {
   LolliPOPKeysModel,
-  LOLLIPOPKEYS_MODEL_PK_FIELD
+  LOLLIPOPKEYS_MODEL_PK_FIELD,
+  LolliPopPubKeys,
+  TTL_VALUE_AFTER_UPDATE,
+  TTL_VALUE_FOR_RESERVATION
 } from "../../../model/lollipop_keys";
 import {
   aLolliPopPubKeys,
+  anAssertionFileName,
   aPendingLolliPopPubKeys
 } from "../../../__mocks__/lollipopkeysMock";
 
@@ -20,7 +24,7 @@ describe("Create", () => {
     const model = new LolliPOPKeysModel(context.container);
     await model.create(aPendingLolliPopPubKeys)();
     const retrievedDocument = await model.findLastVersionByModelId([
-      aLolliPopPubKeys.assertionRef
+      aPendingLolliPopPubKeys.assertionRef
     ])();
 
     expect(retrievedDocument).toEqual(
@@ -28,10 +32,10 @@ describe("Create", () => {
         right: expect.objectContaining({
           _tag: "Some",
           value: expect.objectContaining({
-            assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            pubKey: "aValidPubKey",
-            status: "PENDING",
-            ttl: 900,
+            assertionRef: aPendingLolliPopPubKeys.assertionRef,
+            pubKey: aPendingLolliPopPubKeys.pubKey,
+            status: aPendingLolliPopPubKeys.status,
+            ttl: TTL_VALUE_FOR_RESERVATION,
             version: 0
           })
         })
@@ -51,14 +55,13 @@ describe("Create", () => {
         right: expect.objectContaining({
           _tag: "Some",
           value: expect.objectContaining({
-            assertionFileName:
-              "RLDBSV36A78Y792X-sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionType: "OIDC",
-            fiscalCode: "RLDBSV36A78Y792X",
-            pubKey: "aValidPubKey",
-            status: "VALID",
-            ttl: 63072000,
+            assertionFileName: aLolliPopPubKeys.assertionFileName,
+            assertionRef: aLolliPopPubKeys.assertionRef,
+            assertionType: aLolliPopPubKeys.assertionType,
+            fiscalCode: aLolliPopPubKeys.fiscalCode,
+            pubKey: aLolliPopPubKeys.pubKey,
+            status: aLolliPopPubKeys.status,
+            ttl: TTL_VALUE_AFTER_UPDATE,
             version: 0
           })
         })
@@ -68,14 +71,8 @@ describe("Create", () => {
 
   test("GIVEN a working model and 2 same documents WHEN create is called the second time THEN a COSMOS_CONFLICT_RESPONSE should be returned", async () => {
     const model = new LolliPOPKeysModel(context.container);
-    await model.create({
-      ...aLolliPopPubKeys,
-      status: PubKeyStatusEnum.PENDING
-    })();
-    const r = await model.create({
-      ...aLolliPopPubKeys,
-      status: PubKeyStatusEnum.PENDING
-    })();
+    await model.create(aLolliPopPubKeys)();
+    const r = await model.create(aLolliPopPubKeys)();
     expect(r).toEqual(
       expect.objectContaining({
         _tag: "Left",
@@ -90,7 +87,7 @@ describe("Upsert", () => {
     const model = new LolliPOPKeysModel(context.container);
     await model.upsert(aPendingLolliPopPubKeys)();
     const retrievedDocument = await model.findLastVersionByModelId([
-      aLolliPopPubKeys.assertionRef
+      aPendingLolliPopPubKeys.assertionRef
     ])();
 
     expect(retrievedDocument).toEqual(
@@ -98,10 +95,10 @@ describe("Upsert", () => {
         right: expect.objectContaining({
           _tag: "Some",
           value: expect.objectContaining({
-            assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            pubKey: "aValidPubKey",
-            status: "PENDING",
-            ttl: 900,
+            assertionRef: aPendingLolliPopPubKeys.assertionRef,
+            pubKey: aPendingLolliPopPubKeys.pubKey,
+            status: aPendingLolliPopPubKeys.status,
+            ttl: TTL_VALUE_FOR_RESERVATION,
             version: 0
           })
         })
@@ -121,14 +118,13 @@ describe("Upsert", () => {
         right: expect.objectContaining({
           _tag: "Some",
           value: expect.objectContaining({
-            assertionFileName:
-              "RLDBSV36A78Y792X-sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionType: "OIDC",
-            fiscalCode: "RLDBSV36A78Y792X",
-            pubKey: "aValidPubKey",
-            status: "VALID",
-            ttl: 63072000,
+            assertionFileName: aLolliPopPubKeys.assertionFileName,
+            assertionRef: aLolliPopPubKeys.assertionRef,
+            assertionType: aLolliPopPubKeys.assertionType,
+            fiscalCode: aLolliPopPubKeys.fiscalCode,
+            pubKey: aLolliPopPubKeys.pubKey,
+            status: aLolliPopPubKeys.status,
+            ttl: TTL_VALUE_AFTER_UPDATE,
             version: 0
           })
         })
@@ -149,14 +145,13 @@ describe("Upsert", () => {
         right: expect.objectContaining({
           _tag: "Some",
           value: expect.objectContaining({
-            assertionFileName:
-              "RLDBSV36A78Y792X-sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-            assertionType: "OIDC",
-            fiscalCode: "RLDBSV36A78Y792X",
-            pubKey: "aValidPubKey",
-            status: "VALID",
-            ttl: 63072000,
+            assertionFileName: aLolliPopPubKeys.assertionFileName,
+            assertionRef: aLolliPopPubKeys.assertionRef,
+            assertionType: aLolliPopPubKeys.assertionType,
+            fiscalCode: aLolliPopPubKeys.fiscalCode,
+            pubKey: aLolliPopPubKeys.pubKey,
+            status: aLolliPopPubKeys.status,
+            ttl: TTL_VALUE_AFTER_UPDATE,
             version: 1
           })
         })
