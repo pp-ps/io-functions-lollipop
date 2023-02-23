@@ -379,8 +379,8 @@ describe("handleRevoke", () => {
       .mockImplementationOnce(() => TE.right(O.some(aNotPendingLollipopPubKey)))
       .mockImplementationOnce(() => TE.right(O.some(aPendingLollipopPubKey)));
 
-    expect(
-      await handleRevoke(
+    await expect(
+      handleRevoke(
         contextMock,
         mockAppinsights as any,
         lollipopKeysModelMock,

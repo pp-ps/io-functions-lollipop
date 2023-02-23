@@ -16,7 +16,7 @@ import { AssertionRefSha384 } from "../generated/definitions/internal/AssertionR
 import { AssertionRefSha256 } from "../generated/definitions/internal/AssertionRefSha256";
 import { assertNever } from "./errors";
 
-export const AssertionsRef = t.intersection([
+export const AssertionRefByType = t.intersection([
   t.type({
     master: AssertionRef
   }),
@@ -25,7 +25,7 @@ export const AssertionsRef = t.intersection([
   })
 ]);
 
-export type AssertionsRef = t.TypeOf<typeof AssertionsRef>;
+export type AssertionRefByType = t.TypeOf<typeof AssertionRefByType>;
 
 const getMasterAssertionRefType = (
   masterAlgo: JwkPubKeyHashAlgorithm
@@ -49,7 +49,7 @@ export const getAllAssertionsRef = (
   masterAlgo: JwkPubKeyHashAlgorithm,
   usedAssertionRef: AssertionRef,
   usedPubKey: NonEmptyString
-): TE.TaskEither<Error, AssertionsRef> =>
+): TE.TaskEither<Error, AssertionRefByType> =>
   pipe(
     usedAssertionRef,
     getMasterAssertionRefType(masterAlgo).is,
