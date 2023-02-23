@@ -35,7 +35,8 @@ interface IPubKeysByType {
  * this function extracts all lollipopPubKeys to be revoked including master key
  *
  * @param lollipopKeysModel
- * @returns a readonly array of lollipopPubKeys to be revoked
+ * @returns an object containing master and optionally used lollipopPubKeys to be revoked
+ *
  */
 const extractPubKeysToRevoke = (
   lollipopKeysModel: LolliPOPKeysModel,
