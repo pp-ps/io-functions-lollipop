@@ -32,7 +32,7 @@ describe("pubKeyToAlgos", () => {
 
 describe("calculateAssertionRef", () => {
   beforeEach(() => {
-    jest.spyOn(jose, "calculateThumbprint").mockRestore();
+    jest.clearAllMocks();
   });
 
   test.each([
