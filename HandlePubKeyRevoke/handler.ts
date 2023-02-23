@@ -69,7 +69,7 @@ const extractPubKeysToRevoke = (
                 flow(
                   NotPendingLolliPopPubKeys.decode,
                   E.mapLeft(() =>
-                    toPermanentFailure(
+                    toTransientFailure(
                       Error("Cannot decode a VALID master lollipopPubKey")
                     )()
                   )
