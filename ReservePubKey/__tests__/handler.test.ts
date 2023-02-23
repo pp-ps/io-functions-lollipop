@@ -8,7 +8,7 @@ import {
   TTL_VALUE_FOR_RESERVATION
 } from "../../model/lollipop_keys";
 import { encodeBase64 } from "../../utils/thumbprint";
-import { MASTER_HASH_ALGO } from "../../utils/pubkeys";
+import { MASTER_HASH_ALGO } from "../../utils/lollipopKeys";
 import {
   aSha256PubKeyThumbprint,
   aSha512PubKey,
@@ -19,6 +19,7 @@ import {
   mockContainer
 } from "../../__mocks__/lollipopkeysMock";
 import * as handler from "../handler";
+import { AssertionRef } from "../../generated/definitions/external/AssertionRef";
 
 const mockCreatePendingLollipop = (pendingLollipop: PendingLolliPopPubKeys) =>
   Promise.resolve({
@@ -38,8 +39,11 @@ describe("reserveSingleKey", () => {
 
     const model = new LolliPOPKeysModel(mockedContainer.container);
     const pubKey = aSha512PubKey;
-    const result = await handler.reserveSingleKey(model)(pubKey)();
-    const assertionRef = `${pubKey.algo}-${aSha512PubKeyThumbprint}`;
+    const assertionRef = `${pubKey.algo}-${aSha512PubKeyThumbprint}` as AssertionRef;
+    const result = await handler.reserveSingleKey(
+      model,
+      pubKey.pub_key
+    )(assertionRef)();
     expect(result).toEqual(
       expect.objectContaining({
         right: expect.objectContaining({ assertionRef })
@@ -64,7 +68,11 @@ describe("reserveSingleKey", () => {
 
     const model = new LolliPOPKeysModel(mockedContainer.container);
     const pubKey = aSha512PubKey;
-    const result = await handler.reserveSingleKey(model)(pubKey)();
+    const assertionRef = `${pubKey.algo}-${aSha512PubKeyThumbprint}` as AssertionRef;
+    const result = await handler.reserveSingleKey(
+      model,
+      pubKey.pub_key
+    )(assertionRef)();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -111,13 +119,11 @@ describe("reservePubKeys", () => {
     const assertionRef = `${pubKey.algo}-${aSha256PubKeyThumbprint}`;
     const masterAssertionRef = `${MASTER_HASH_ALGO}-${aSha512PubKeyThumbprint}`;
     expect(mockedContainer.mock.create).toHaveBeenCalledTimes(2);
-    expect(mockedContainer.mock.create).toHaveBeenNthCalledWith(
-      1,
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
       expect.objectContaining({ assertionRef: masterAssertionRef }),
       expect.anything()
     );
-    expect(mockedContainer.mock.create).toHaveBeenNthCalledWith(
-      2,
+    expect(mockedContainer.mock.create).toHaveBeenCalledWith(
       expect.objectContaining({ assertionRef }),
       expect.anything()
     );

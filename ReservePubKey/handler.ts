@@ -11,18 +11,16 @@ import {
   ResponseErrorInternal,
   ResponseSuccessRedirectToResource
 } from "@pagopa/ts-commons/lib/responses";
-import { pipe } from "fp-ts/lib/function";
-import * as RA from "fp-ts/ReadonlyArray";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import * as A from "fp-ts/Apply";
+import * as R from "fp-ts/Record";
+import { isDefined } from "@pagopa/io-functions-commons/dist/src/utils/types";
 import { encodeBase64 } from "../utils/thumbprint";
-import {
-  calculateAssertionRef,
-  PubKeyToAlgo,
-  pubKeyToAlgos
-} from "../utils/pubkeys";
+import { MASTER_HASH_ALGO } from "../utils/lollipopKeys";
 import { NewPubKey } from "../generated/definitions/internal/NewPubKey";
 import { NewPubKeyPayload } from "../generated/definitions/internal/NewPubKeyPayload";
 import {
@@ -30,6 +28,9 @@ import {
   RetrievedLolliPopPubKeys
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+import { getAllAssertionsRef } from "../utils/lollipopKeys";
+import { AssertionRef } from "../generated/definitions/external/AssertionRef";
+import { JwkPubKey } from "../generated/definitions/internal/JwkPubKey";
 
 type IReservePubKeyHandler = (
   inputPubkeys: NewPubKeyPayload
@@ -46,38 +47,48 @@ const cosmosErrorsToResponse = (
     ? ResponseErrorConflict("A lollipop pubKey has been already reserved")
     : ResponseErrorInternal(JSON.stringify(error));
 
-export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
-  inputPubkeys: PubKeyToAlgo
+export const reserveSingleKey = (
+  lollipopPubkeysModel: LolliPOPKeysModel,
+  pubKey: JwkPubKey
+) => (
+  assertionRef: AssertionRef
 ): TE.TaskEither<
-  IResponseErrorInternal | IResponseErrorConflict | IResponseErrorInternal,
+  IResponseErrorInternal | IResponseErrorConflict,
   RetrievedLolliPopPubKeys
 > =>
   pipe(
-    inputPubkeys,
-    calculateAssertionRef,
-    TE.map(assertionRef => ({
+    {
       assertionRef,
-      pubKey: encodeBase64(inputPubkeys.pub_key) as NonEmptyString,
+      pubKey: encodeBase64(pubKey) as NonEmptyString,
       status: PubKeyStatusEnum.PENDING as const
-    })),
-    TE.mapLeft(e => ResponseErrorInternal(e.message)),
-    TE.chain(pendingPubKey =>
+    },
+    pendingPubKey =>
       pipe(
         lollipopPubkeysModel.create(pendingPubKey),
         TE.mapLeft(cosmosErrorsToResponse)
       )
-    )
   );
 
 export const reservePubKeys = (
   lollipopPubkeysModel: LolliPOPKeysModel
 ): IReservePubKeyHandler => (inputPubkeys): ReturnType<IReservePubKeyHandler> =>
   pipe(
-    inputPubkeys,
-    pubKeyToAlgos,
-    RA.map(reserveSingleKey(lollipopPubkeysModel)),
-    RA.sequence(TE.ApplicativePar),
-    TE.map(reservedKeys => reservedKeys[0]),
+    getAllAssertionsRef(
+      MASTER_HASH_ALGO,
+      inputPubkeys.algo,
+      inputPubkeys.pub_key
+    ),
+    TE.mapLeft(err => ResponseErrorInternal(err.message)),
+    TE.chain(
+      flow(
+        R.filter(isDefined),
+        R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
+        A.sequenceS(TE.ApplicativePar)
+      )
+    ),
+    TE.map(reservedKeys =>
+      reservedKeys.used !== undefined ? reservedKeys.used : reservedKeys.master
+    ),
     TE.map(reservedKey => ({
       assertion_ref: reservedKey.assertionRef,
       pub_key: reservedKey.pubKey,
