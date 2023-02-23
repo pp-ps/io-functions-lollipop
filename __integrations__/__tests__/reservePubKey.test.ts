@@ -149,7 +149,7 @@ const waitFunctionToSetup = async (): Promise<void> => {
       await fetch(baseUrl + "/info");
       break;
     } catch (e) {
-      log("Waiting the function to setup..");
+      log("Waiting the function to setup...|" + JSON.stringify(e));
       await delay(WAIT_MS);
       i++;
     }
