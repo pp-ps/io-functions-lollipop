@@ -15,6 +15,7 @@ import {
 import { getRequiredStringEnv } from "../utils/env";
 import { PromiseType } from "@pagopa/ts-commons/lib/types";
 import { inspect } from "util";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 const endpoint = getRequiredStringEnv("COSMOSDB_URI");
 const key = getRequiredStringEnv("COSMOSDB_KEY");
@@ -42,7 +43,7 @@ const createDatabase = (
     TE.map(databaseResponse => databaseResponse.database)
   );
 
-const makeRandomContainerName = (): string => {
+export const makeRandomContainerName = (): NonEmptyString => {
   const result: string[] = [];
   const characters = "abcdefghijklmnopqrstuvwxyz";
   const charactersLength = characters.length;
@@ -53,7 +54,7 @@ const makeRandomContainerName = (): string => {
       characters.charAt(Math.floor(Math.random() * charactersLength))
     );
   }
-  return `test-${result.join("")}`;
+  return `test-${result.join("")}` as NonEmptyString;
 };
 
 const createContainer = (
@@ -78,8 +79,11 @@ const createContainer = (
     TE.map(containerResponse => containerResponse.container)
   );
 
-export const createContext = (partitionKey: string, hasStorage = false) => {
-  const containerName = makeRandomContainerName();
+export const createContext = (
+  partitionKey: string,
+  containerName: NonEmptyString,
+  hasStorage = false
+) => {
   let db: Database;
   let storage: BlobService;
   let container: Container;
