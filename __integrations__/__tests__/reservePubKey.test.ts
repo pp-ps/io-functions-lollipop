@@ -96,7 +96,7 @@ const fetchReservePubKey = (body: unknown) =>
   });
 
 describe("ReservePubKey", () => {
-  test("GIVEN a new public key WHEN reserve the key THEN return a success contianing the assertion ref", async () => {
+  test("GIVEN a new public key WHEN reserve the key THEN return a success containing the assertion ref", async () => {
     const result = await fetchReservePubKey(aReservePubKeyPayload);
     const content = await result.json();
     expect(content).toEqual(
