@@ -15,7 +15,7 @@ paths:
   /assertions/{assertion_ref}:
     get:
       operationId: getAssertion
-      summary: Get Assertion related to a give assertion ref
+      summary: Get Assertion related to a given assertion ref
       parameters:
         - name: assertion_ref
           required: true
