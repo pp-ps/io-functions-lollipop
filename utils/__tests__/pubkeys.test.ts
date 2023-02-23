@@ -6,7 +6,7 @@ import {
   aSha512PubKeyThumbprint
 } from "../../__mocks__/jwkMock";
 import { calculateAssertionRef, pubKeyToAlgos } from "../pubkeys";
-import * as jose from "../../utils/jose";
+import * as jose from "../../utils/thumbprint";
 import * as TE from "fp-ts/TaskEither";
 
 const anError = new Error("an Error");
