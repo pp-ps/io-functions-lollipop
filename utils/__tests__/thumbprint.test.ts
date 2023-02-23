@@ -4,7 +4,7 @@ import {
   aSha384PubKeyThumbprint,
   aSha512PubKeyThumbprint
 } from "../../__mocks__/jwkMock";
-import { calculateThumbprint, encodeBase64 } from "../jose";
+import { calculateThumbprint, encodeBase64 } from "../thumbprint";
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 
