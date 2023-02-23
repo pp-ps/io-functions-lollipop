@@ -1,8 +1,6 @@
 import * as t from "io-ts";
 import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
-import { Context } from "@azure/functions";
-import { TelemetryClient, trackException } from "./appinsights";
 
 export const assertNever = (x: never): never => {
   throw new Error(`Unexpected object: ${JSON.stringify(x)}`);
@@ -57,27 +55,3 @@ export const toPermanentFailure = (err: Error, customReason?: string) => (
         reason: `PERMANENT FAILURE|${errorMsg}`
       })
   );
-
-export const trackFailure = (
-  telemetryClient: TelemetryClient,
-  context: Context,
-  logPrefix: string
-) => (err: Failure): Failure => {
-  const error = TransientFailure.is(err)
-    ? `${logPrefix}|TRANSIENT_ERROR=${err.reason}`
-    : `${logPrefix}|FATAL|PERMANENT_ERROR=${err.reason}`;
-  trackException(telemetryClient, {
-    exception: new Error(error),
-    properties: {
-      detail: err.kind,
-      fatal: PermanentFailure.is(err).toString(),
-      isSuccess: "false",
-      name: `cgn.exception.${logPrefix}.failure`
-    }
-  });
-  context.log.error(error);
-  if (TransientFailure.is(err)) {
-    throw new Error(err.reason);
-  }
-  return err;
-};
