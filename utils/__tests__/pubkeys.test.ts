@@ -55,7 +55,7 @@ describe("calculateAssertionRef", () => {
       )}-${aSha256PubKeyThumbprint}`
     }
   ])(
-    "GIVEN a pub_key $pubKey WHEN calculateAssertionRef THEN return the assertion ref",
+    "GIVEN a pub_key encoded with $pubKey.algo WHEN calculateAssertionRef THEN return the assertion ref",
     async ({ pubKey, expected }) => {
       const assertionRef = await calculateAssertionRef(pubKey)();
       expect(assertionRef).toEqual(
