@@ -7,7 +7,7 @@ import {
   PendingLolliPopPubKeys,
   TTL_VALUE_FOR_RESERVATION
 } from "../../model/lollipop_keys";
-import { encodeBase64 } from "../../utils/jose";
+import { encodeBase64 } from "../../utils/thumbprint";
 import { MASTER_HASH_ALGO } from "../../utils/pubkeys";
 import {
   aSha256PubKeyThumbprint,
@@ -141,6 +141,24 @@ describe("reservePubKeys", () => {
     const pubKey = aSha512PubKey;
     const result = await handler.reservePubKeys(model)(pubKey);
     expect(mockedContainer.mock.create).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseErrorInternal",
+        detail: expect.stringContaining("COSMOS_ERROR_RESPONSE")
+      })
+    );
+  });
+
+  test("GIVEN a not working model WHEN reserve a non-master pub_key THEN return an internal error response containing a Cosmos Error", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(() => "");
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = {
+      ...aSha512PubKey,
+      algo: JwkPubKeyHashAlgorithmEnum.sha256
+    };
+    const result = await handler.reservePubKeys(model)(pubKey);
+    expect(mockedContainer.mock.create).toHaveBeenCalledTimes(2);
     expect(result).toEqual(
       expect.objectContaining({
         kind: "IResponseErrorInternal",
