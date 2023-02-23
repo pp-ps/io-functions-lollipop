@@ -17,7 +17,7 @@ import { COSMOSDB_URI, COSMOSDB_KEY, COSMOSDB_NAME } from "../../env";
 
 const containerName = makeRandomContainerName();
 
-const context = createContext(LOLLIPOPKEYS_MODEL_PK_FIELD, containerName);
+const context = createContext(LOLLIPOPKEYS_MODEL_PK_FIELD, containerName, true);
 
 beforeEach(async () => await context.init());
 afterEach(async () => await context.dispose());
