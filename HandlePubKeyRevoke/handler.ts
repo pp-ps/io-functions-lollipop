@@ -133,8 +133,7 @@ export const handleRevoke = (
               )
             )
           )
-        ),
-        TE.map(constVoid)
+        )
       )
     ),
     TE.mapLeft(err => {
