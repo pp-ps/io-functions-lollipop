@@ -43,7 +43,7 @@ const cosmosErrorsToResponse = (
     : ResponseErrorInternal(JSON.stringify(error));
 
 export const reserveSingleKey = (lollipopPubkeysModel: LolliPOPKeysModel) => (
-  inputPubkeys: NewPubKeyPayload
+  inputPubkeys: PubKeyToAlgo
 ): TE.TaskEither<
   IResponseErrorInternal | IResponseErrorConflict | IResponseErrorInternal,
   RetrievedLolliPopPubKeys
