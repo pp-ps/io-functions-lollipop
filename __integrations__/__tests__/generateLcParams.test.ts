@@ -66,6 +66,9 @@ const aGenerateLcParamsPayload = {
 const aSha256AssertionRef =
   "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";
 
+const aPendingSha256AssertionRef =
+  "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_PEND1n";
+
 const aNotExistingSha256AssertionRef =
   "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN1gg";
 const GENERATE_LC_PARAMS_BASE_PATH = "api/v1/pubkeys";
@@ -105,10 +108,13 @@ describe("GenerateLcParams", () => {
       database.container(LOLLIPOPKEYS_COLLECTION_NAME)
     );
 
-    await model.create(aPendingLolliPopPubKeys)();
+    await model.create({
+      ...aPendingLolliPopPubKeys,
+      assertionRef: aPendingSha256AssertionRef as any
+    })();
 
     const result = await fetchGenerateLcParams(
-      anAssertionRef,
+      aPendingSha256AssertionRef,
       aGenerateLcParamsPayload
     );
     expect(result.status).toEqual(403);
