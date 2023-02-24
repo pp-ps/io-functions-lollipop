@@ -115,10 +115,6 @@ describe("GenerateLcParams", () => {
   });
 
   test("GIVEN a not existing public key WHEN calling generateLcParams THEN return Not Found", async () => {
-    const model = new LolliPOPKeysModel(
-      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
-    );
-
     const result = await fetchGenerateLcParams(
       aNotExistingSha256AssertionRef,
       aGenerateLcParamsPayload
@@ -138,7 +134,7 @@ describe("GenerateLcParams", () => {
     })();
 
     const result = await fetchGenerateLcParams(
-      anAssertionRef,
+      aSha256AssertionRef,
       aGenerateLcParamsPayload
     );
     expect(result.status).toEqual(403);
