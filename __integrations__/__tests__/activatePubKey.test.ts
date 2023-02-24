@@ -2,8 +2,7 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 
-import { CosmosClient, Database } from "@azure/cosmos";
-import { createBlobService } from "azure-storage";
+import { Database } from "@azure/cosmos";
 
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
@@ -17,9 +16,7 @@ import {
   WAIT_MS,
   SHOW_LOGS,
   COSMOSDB_URI,
-  COSMOSDB_KEY,
   COSMOSDB_NAME,
-  QueueStorageConnection,
   LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
 } from "../env";
 import { createQueues } from "../utils/azure_storage";
@@ -36,14 +33,6 @@ const fetch = getNodeFetch();
 // Setup dbs
 // ----------------
 
-const blobService = createBlobService(QueueStorageConnection);
-
-// @ts-ignore
-const cosmosClient = new CosmosClient({
-  endpoint: COSMOSDB_URI,
-  key: COSMOSDB_KEY
-});
-
 const queueClient = QueueServiceClient.fromConnectionString(
   LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
 );
@@ -54,7 +43,7 @@ let database: Database;
 // Wait some time
 beforeAll(async () => {
   database = await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(e => {
       throw Error("Cannot create infra resources");
     })
