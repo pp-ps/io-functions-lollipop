@@ -4,12 +4,12 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/ReadonlyArray";
 import { pipe } from "fp-ts/lib/function";
 
-import { log } from "../utils/logger";
+import { log } from "./logger";
 import {
   createContainer as createCollection,
   createDatabase,
   deleteContainer
-} from "./utils/cosmos";
+} from "./cosmos_utils";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { Container } from "@azure/cosmos";
@@ -75,7 +75,7 @@ export const createCosmosDbAndCollections = (
   cosmosDbName: string
 ): TE.TaskEither<CosmosErrors, Database> =>
   pipe(
-    createDatabase(client, cosmosDbName),
+    createDatabase(cosmosDbName),
     // Delete all collections, in case they already exist
     TE.chainFirst(deleteAllCollections),
     TE.chainFirst(createAllCollections),

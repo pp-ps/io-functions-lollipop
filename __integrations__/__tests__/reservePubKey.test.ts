@@ -3,12 +3,11 @@
 import { exit } from "process";
 
 import { CosmosClient, Database } from "@azure/cosmos";
-import { createBlobService } from "azure-storage";
 
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
-import { createCosmosDbAndCollections } from "../__mocks__/fixtures";
+import { createCosmosDbAndCollections } from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";

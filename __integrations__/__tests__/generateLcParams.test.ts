@@ -7,7 +7,7 @@ import { CosmosClient, Database } from "@azure/cosmos";
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
-import { createCosmosDbAndCollections } from "../__mocks__/fixtures";
+import { createCosmosDbAndCollections } from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
@@ -19,13 +19,16 @@ import {
   COSMOSDB_KEY,
   COSMOSDB_NAME
 } from "../env";
-import { GenerateLcParamsPayload } from "../../generated/definitions/internal/GenerateLcParamsPayload";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   LolliPOPKeysModel,
   LOLLIPOPKEYS_COLLECTION_NAME
 } from "../../model/lollipop_keys";
-import { aLolliPopPubKeys } from "../../__mocks__/lollipopkeysMock";
+import {
+  aLolliPopPubKeys,
+  aPendingLolliPopPubKeys
+} from "../../__mocks__/lollipopkeysMock";
+import * as date_fns from "date-fns";
 
 const MAX_ATTEMPT = 50;
 
@@ -68,7 +71,7 @@ beforeEach(() => {
 // Tests
 // -------------------------
 
-const aGenerateLcParamsPayload: GenerateLcParamsPayload = {
+const aGenerateLcParamsPayload = {
   operation_id: "an_operation_id" as NonEmptyString
 };
 const anAssertionRef = "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";
@@ -105,11 +108,42 @@ describe("GenerateLcParams", () => {
     );
   });
 
+  test("GIVEN a pending public key WHEN calling generateLcParams THEN return Forbidden", async () => {
+    const model = new LolliPOPKeysModel(
+      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
+    );
+
+    await model.create(aPendingLolliPopPubKeys)();
+
+    const result = await fetchGenerateLcParams(
+      anAssertionRef,
+      aGenerateLcParamsPayload
+    );
+    expect(result.status).toEqual(403);
+  });
+
+  test("GIVEN an expired public key WHEN calling generateLcParams THEN return Forbidden", async () => {
+    const model = new LolliPOPKeysModel(
+      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
+    );
+
+    await model.upsert({
+      ...aLolliPopPubKeys,
+      expiredAt: date_fns.addDays(new Date(), -1000)
+    })();
+
+    const result = await fetchGenerateLcParams(
+      anAssertionRef,
+      aGenerateLcParamsPayload
+    );
+    expect(result.status).toEqual(403);
+  });
+
   test("GIVEN a malformed payload WHEN calling generateLcParams THEN return a bad request", async () => {
-    const reserve = await fetchGenerateLcParams(anAssertionRef, {
+    const result = await fetchGenerateLcParams(anAssertionRef, {
       wrong: "wrong"
     });
-    expect(reserve.status).toEqual(400);
+    expect(result.status).toEqual(400);
   });
 });
 

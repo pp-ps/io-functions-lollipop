@@ -8,7 +8,7 @@ import { createBlobService } from "azure-storage";
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
-import { createCosmosDbAndCollections } from "../__mocks__/fixtures";
+import { createCosmosDbAndCollections } from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
@@ -22,7 +22,7 @@ import {
   QueueStorageConnection,
   LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
 } from "../env";
-import { createQueues } from "../__mocks__/utils/azure_storage";
+import { createQueues } from "../utils/azure_storage";
 import { QueueServiceClient } from "@azure/storage-queue";
 
 const MAX_ATTEMPT = 50;
