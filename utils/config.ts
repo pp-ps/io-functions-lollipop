@@ -21,6 +21,7 @@ const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 30 as NonNegativeInteger;
 export type IConfig = t.TypeOf<typeof IConfig>;
 // eslint-disable-next-line @typescript-eslint/ban-types
 export const IConfig = t.interface({
+  APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
   AzureWebJobsStorage: NonEmptyString,
 
   COSMOSDB_KEY: NonEmptyString,
@@ -31,6 +32,7 @@ export const IConfig = t.interface({
     NonNegativeInteger,
     DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
   ),
+  LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
 
   isProduction: t.boolean
 });

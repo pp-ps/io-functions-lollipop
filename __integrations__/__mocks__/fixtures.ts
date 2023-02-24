@@ -4,8 +4,6 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/ReadonlyArray";
 import { pipe } from "fp-ts/lib/function";
 
-import * as MessageStatusCollection from "@pagopa/io-functions-commons/dist/src/models/message_status";
-
 import { log } from "../utils/logger";
 import {
   createContainer as createCollection,
@@ -21,22 +19,13 @@ import { Container } from "@azure/cosmos";
  * @param database
  * @returns
  */
-// TODO
-// export const createAllCollections = (
-//   database: Database
-// ): TE.TaskEither<CosmosErrors, readonly Container[]> =>
-//   pipe(
-//     [
-//       //TODO: Replace
-//       // message-status
-//       createCollection(
-//         database,
-//         MessageStatusCollection.MESSAGE_STATUS_COLLECTION_NAME,
-//         MessageStatusCollection.MESSAGE_STATUS_MODEL_PK_FIELD
-//       )
-//     ],
-//     RA.sequence(TE.ApplicativePar)
-//   );
+export const createAllCollections = (
+  database: Database
+): TE.TaskEither<CosmosErrors, readonly Container[]> =>
+  pipe(
+    [createCollection(database, "lollipop-pubkeys", "assertionRef")],
+    RA.sequence(TE.ApplicativePar)
+  );
 
 /**
  * Create DB
@@ -89,7 +78,7 @@ export const createCosmosDbAndCollections = (
     createDatabase(client, cosmosDbName),
     // Delete all collections, in case they already exist
     TE.chainFirst(deleteAllCollections),
-    // TE.chainFirst(createAllCollections),
+    TE.chainFirst(createAllCollections),
     TE.mapLeft(err => {
       log("Error", err);
       return err;

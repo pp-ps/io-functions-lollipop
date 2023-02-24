@@ -2,26 +2,16 @@
   "version": "2.0",
   "logging": {
     "logLevel": {
-      "default": "Trace"
+      "default": "Information"
     }
   },
   "extensions": {
     "http": {
       "routePrefix": ""
-    },
-    "durableTask": {
-      "hubName": "%SLOT_TASK_HUBNAME%",
-      "storageProvider": {
-        "connectionStringName": "AzureWebJobsStorage"
-      },
-      "tracing": {
-        "traceInputsAndOutputs": false,
-        "traceReplayEvents": false
-      }
     }
   },
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
-    "version": "[2.*, 3.0.0)"
+    "version": "[4.0.0, 5.0.0)"
   }
 }

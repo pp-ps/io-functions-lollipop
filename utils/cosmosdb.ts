@@ -14,4 +14,4 @@ export const cosmosdbClient = new CosmosClient({
   key: masterKey
 });
 
-export const cosmosDbInstance = cosmosdbClient.database(cosmosDbName);
+export const cosmosdbInstance = cosmosdbClient.database(cosmosDbName);
