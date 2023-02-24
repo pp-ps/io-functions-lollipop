@@ -2,7 +2,7 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 
-import { CosmosClient, Database } from "@azure/cosmos";
+import { Database } from "@azure/cosmos";
 
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
@@ -12,13 +12,7 @@ import { createCosmosDbAndCollections } from "../utils/fixtures";
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 
-import {
-  WAIT_MS,
-  SHOW_LOGS,
-  COSMOSDB_URI,
-  COSMOSDB_KEY,
-  COSMOSDB_NAME
-} from "../env";
+import { WAIT_MS, SHOW_LOGS, COSMOSDB_URI, COSMOSDB_NAME } from "../env";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   LolliPOPKeysModel,
@@ -26,6 +20,7 @@ import {
 } from "../../model/lollipop_keys";
 import {
   aLolliPopPubKeys,
+  anAssertionRef,
   aPendingLolliPopPubKeys
 } from "../../__mocks__/lollipopkeysMock";
 import * as date_fns from "date-fns";
@@ -41,20 +36,13 @@ const fetch = getNodeFetch();
 // Setup dbs
 // ----------------
 
-console.log("COSMOSURI " + COSMOSDB_URI);
-// @ts-ignore
-const cosmosClient = new CosmosClient({
-  endpoint: COSMOSDB_URI,
-  key: COSMOSDB_KEY
-});
-
 // eslint-disable-next-line functional/no-let
 let database: Database;
 
 // Wait some time
 beforeAll(async () => {
   database = await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(e => {
       throw Error("Cannot create db");
     })
@@ -74,7 +62,6 @@ beforeEach(() => {
 const aGenerateLcParamsPayload = {
   operation_id: "an_operation_id" as NonEmptyString
 };
-const anAssertionRef = "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";
 
 const GENERATE_LC_PARAMS_BASE_PATH = "api/v1/pubkeys";
 const fetchGenerateLcParams = (assertionRef: string, body: unknown) =>

@@ -1,4 +1,4 @@
-import { CosmosClient, Database } from "@azure/cosmos";
+import { Database } from "@azure/cosmos";
 
 import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/ReadonlyArray";
@@ -71,7 +71,6 @@ export const deleteAllCollections = (
  * Create DB and collections
  */
 export const createCosmosDbAndCollections = (
-  client: CosmosClient,
   cosmosDbName: string
 ): TE.TaskEither<CosmosErrors, Database> =>
   pipe(

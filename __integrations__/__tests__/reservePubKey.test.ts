@@ -2,7 +2,7 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 
-import { CosmosClient, Database } from "@azure/cosmos";
+import { Database } from "@azure/cosmos";
 
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
@@ -12,13 +12,7 @@ import { createCosmosDbAndCollections } from "../utils/fixtures";
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 
-import {
-  WAIT_MS,
-  SHOW_LOGS,
-  COSMOSDB_URI,
-  COSMOSDB_KEY,
-  COSMOSDB_NAME
-} from "../env";
+import { WAIT_MS, SHOW_LOGS, COSMOSDB_URI, COSMOSDB_NAME } from "../env";
 
 const MAX_ATTEMPT = 50;
 
@@ -31,20 +25,13 @@ const fetch = getNodeFetch();
 // Setup dbs
 // ----------------
 
-console.log("COSMOSURI " + COSMOSDB_URI);
-// @ts-ignore
-const cosmosClient = new CosmosClient({
-  endpoint: COSMOSDB_URI,
-  key: COSMOSDB_KEY
-});
-
 // eslint-disable-next-line functional/no-let
 let database: Database;
 
 // Wait some time
 beforeAll(async () => {
   database = await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(e => {
       throw Error("Cannot create db");
     })
