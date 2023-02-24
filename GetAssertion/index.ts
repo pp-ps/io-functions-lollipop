@@ -7,7 +7,7 @@ import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middl
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 
 import { createBlobService } from "azure-storage";
-import { cosmosDbInstance } from "../utils/cosmosdb";
+import { cosmosdbInstance } from "../utils/cosmosdb";
 import {
   LolliPOPKeysModel,
   LOLLIPOPKEYS_COLLECTION_NAME
@@ -16,7 +16,7 @@ import { getConfigOrThrow } from "../utils/config";
 import { GetAssertion } from "./handler";
 
 const lollipopKeysModel = new LolliPOPKeysModel(
-  cosmosDbInstance.container(LOLLIPOPKEYS_COLLECTION_NAME)
+  cosmosdbInstance.container(LOLLIPOPKEYS_COLLECTION_NAME)
 );
 
 const config = getConfigOrThrow();
