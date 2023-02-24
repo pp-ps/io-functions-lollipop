@@ -8,13 +8,11 @@ import {
   wrapRequestHandler
 } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
 import {
-  IResponseErrorConflict,
   IResponseErrorForbiddenNotAuthorized,
   IResponseErrorInternal,
   IResponseErrorNotFound,
   IResponseErrorValidation,
   IResponseSuccessJson,
-  ResponseErrorConflict,
   ResponseErrorForbiddenNotAuthorized,
   ResponseErrorInternal,
   ResponseErrorNotFound,
@@ -66,7 +64,6 @@ type IGenerateLCParamsHandler = (
   | IResponseErrorValidation
   | IResponseErrorForbiddenNotAuthorized
   | IResponseErrorNotFound
-  | IResponseErrorConflict
   | IResponseErrorInternal
 >;
 /**
@@ -96,16 +93,12 @@ export const GenerateLCParamsHandler = (
       flow(
         ValidRetrievedLolliPopPubKeys.decode,
         E.mapLeft(() => ResponseErrorForbiddenNotAuthorized),
-        E.chainW(
+        E.chain(
           E.fromPredicate(
             usedPubKeyDocument =>
-              // eslint-disable-next-line no-underscore-dangle
-              usedPubKeyDocument._ts <
+              usedPubKeyDocument.expiredAt.getTime() >
               dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
-            () =>
-              ResponseErrorConflict(
-                "Cannot generate LC params for an EXPIRED pubKey"
-              )
+            () => ResponseErrorForbiddenNotAuthorized
           )
         ),
         TE.fromEither,
@@ -114,7 +107,7 @@ export const GenerateLCParamsHandler = (
             assertion_file_name: `${activePubKey.assertionFileName}` as NonEmptyString,
             assertion_ref: activePubKey.assertionRef,
             assertion_type: activePubKey.assertionType,
-            expires_at: activePubKey.expiredAt,
+            expired_at: activePubKey.expiredAt,
             fiscal_code: activePubKey.fiscalCode,
             // generateJWT here
             lc_authentication_bearer: payload.operation_id,

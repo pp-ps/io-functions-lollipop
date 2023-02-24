@@ -97,12 +97,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemJson'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemJson'
         '500':
           description: Internal Server Error
           content:
@@ -315,13 +309,13 @@ components:
           type: string
           description: A string representation of a signed SPID/CIE assertion
           minLength: 1
-        expires_at:
+        expired_at:
           $ref: '#/components/schemas/Timestamp'
       required:
         - fiscal_code
         - assertion_type
         - assertion
-        - expires_at
+        - expired_at
     ActivatedPubKey:
       allOf:
         - $ref: '#/components/schemas/NewPubKey'
@@ -334,22 +328,19 @@ components:
               minLength: 1
             assertion_type:
               $ref: '#/components/schemas/AssertionType'
-            expires_at:
+            expired_at:
               $ref: '#/components/schemas/Timestamp'
           required:
             - fiscal_code
             - assertion_file_name
             - assertion_type
-            - expires_at
+            - expired_at
     GenerateLcParamsPayload:
       type: object
       properties:
-        assertion_ref:
-          $ref: '#/components/schemas/AssertionRef'
         operation_id:
           $ref: '#/components/schemas/OperationId'
       required:
-        - assertion_ref
         - operation_id
     LcParams:
       allOf:

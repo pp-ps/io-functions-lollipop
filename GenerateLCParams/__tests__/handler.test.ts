@@ -3,36 +3,34 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { GenerateLcParamsPayload } from "../../generated/definitions/internal/GenerateLcParamsPayload";
-import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { PendingLolliPopPubKeys } from "../../model/lollipop_keys";
-import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
-import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
-import * as jose from "jose";
+import { NotPendingLolliPopPubKeys } from "../../model/lollipop_keys";
+import {
+  aLolliPopPubKeys,
+  anAssertionRef,
+  aPendingLolliPopPubKeys,
+  aRetrievedLolliPopPubKeys
+} from "../../__mocks__/lollipopkeysMock";
+import * as date_fns from "date-fns";
 
 const contextMock = {} as any;
 const defaultGracePeriod = 30 as NonNegativeInteger;
-
-const aValidAssertionRef = "sha256-9f86d081884c7d659a2feaa0c55ad015a3bf4f1234" as AssertionRef;
+const anExpiredOutOfGracePeriodDate = date_fns.addDays(
+  new Date(),
+  -defaultGracePeriod - 1
+);
+const anExpiredInGracePeriodDate = date_fns.addDays(
+  new Date(),
+  -defaultGracePeriod + 1
+);
 
 const aValidGenerateLcParamsPayload: GenerateLcParamsPayload = {
-  assertion_ref: aValidAssertionRef,
   operation_id: "1" as NonEmptyString
 };
-const aValidJwk: JwkPublicKey = {
-  kty: "EC",
-  crv: "P-256",
-  x: "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74",
-  y: "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI"
-};
 
-const toEncodedJwk = (jwk: JwkPublicKey) =>
-  jose.base64url.encode(JSON.stringify(jwk)) as NonEmptyString;
-
-const aPendingLollipopPubKey: PendingLolliPopPubKeys = {
-  assertionRef: aValidAssertionRef,
-  pubKey: toEncodedJwk(aValidJwk),
-  status: PubKeyStatusEnum.PENDING
+const aValidRetrievedLollipopPubKey: NotPendingLolliPopPubKeys = {
+  ...aRetrievedLolliPopPubKeys,
+  ...aLolliPopPubKeys
 };
 
 const findLastVersionByModelIdMock = jest
@@ -51,7 +49,7 @@ describe("GenerateLCParamsHandler", () => {
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
       defaultGracePeriod
-    )(contextMock, aValidAssertionRef, aValidGenerateLcParamsPayload);
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -68,7 +66,7 @@ describe("GenerateLCParamsHandler", () => {
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
       defaultGracePeriod
-    )(contextMock, aValidAssertionRef, aValidGenerateLcParamsPayload);
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -80,16 +78,75 @@ describe("GenerateLCParamsHandler", () => {
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns a pending lollipopPubKeys THEN it should return Forbidden", async () => {
     findLastVersionByModelIdMock.mockImplementationOnce(() =>
-      TE.right(O.some(aPendingLollipopPubKey))
+      TE.right(O.some(aPendingLolliPopPubKeys))
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
       defaultGracePeriod
-    )(contextMock, aValidAssertionRef, aValidGenerateLcParamsPayload);
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
       expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized"
+      })
+    );
+  });
+
+  it("GIVEN a valid input WHEN retrieve operation on cosmos returns an expired lollipopPubKeys THEN it should return Forbidden", async () => {
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.right(
+        O.some({
+          ...aValidRetrievedLollipopPubKey,
+          expiredAt: anExpiredOutOfGracePeriodDate
+        })
+      )
+    );
+    const result = await GenerateLCParamsHandler(
+      lollipopKeysModelMock,
+      defaultGracePeriod
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized"
+      })
+    );
+  });
+
+  it("GIVEN a valid input WHEN retrieve operation on cosmos returns an expired lollipopPubKeys in gracePeriod THEN it should return success", async () => {
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.right(
+        O.some({
+          ...aValidRetrievedLollipopPubKey,
+          expiredAt: anExpiredInGracePeriodDate
+        })
+      )
+    );
+    const result = await GenerateLCParamsHandler(
+      lollipopKeysModelMock,
+      defaultGracePeriod
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseSuccessJson"
+      })
+    );
+  });
+
+  it("GIVEN a valid input WHEN retrieve operation on cosmos returns a valid lollipopPubKeys THEN it should return success", async () => {
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.right(O.some(aValidRetrievedLollipopPubKey))
+    );
+    const result = await GenerateLCParamsHandler(
+      lollipopKeysModelMock,
+      defaultGracePeriod
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
+
+    //TODO Add expected output's payload
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseSuccessJson"
       })
     );
   });
