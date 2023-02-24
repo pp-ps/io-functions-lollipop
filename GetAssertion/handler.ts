@@ -48,7 +48,7 @@ type IGetAssertionHandler = (
   // TODO Add 410 Response type
 >;
 /**
- * Handles requests for generating Lollipop Consumer required params.
+ * Handles requests for retrieve a SPID/OIDC Assertion.
  */
 export const GetAssertionHandler = (
   _: LolliPOPKeysModel,
