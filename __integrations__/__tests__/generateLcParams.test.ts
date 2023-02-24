@@ -63,6 +63,11 @@ const aGenerateLcParamsPayload = {
   operation_id: "an_operation_id" as NonEmptyString
 };
 
+const aSha256AssertionRef =
+  "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg";
+
+const aNotExistingSha256AssertionRef =
+  "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN1gg";
 const GENERATE_LC_PARAMS_BASE_PATH = "api/v1/pubkeys";
 const fetchGenerateLcParams = (assertionRef: string, body: unknown) =>
   fetch(`${baseUrl}/${GENERATE_LC_PARAMS_BASE_PATH}/${assertionRef}/generate`, {
@@ -109,6 +114,18 @@ describe("GenerateLcParams", () => {
     expect(result.status).toEqual(403);
   });
 
+  test("GIVEN a not existing public key WHEN calling generateLcParams THEN return Not Found", async () => {
+    const model = new LolliPOPKeysModel(
+      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
+    );
+
+    const result = await fetchGenerateLcParams(
+      aNotExistingSha256AssertionRef,
+      aGenerateLcParamsPayload
+    );
+    expect(result.status).toEqual(403);
+  });
+
   test("GIVEN an expired public key WHEN calling generateLcParams THEN return Forbidden", async () => {
     const model = new LolliPOPKeysModel(
       database.container(LOLLIPOPKEYS_COLLECTION_NAME)
@@ -116,6 +133,7 @@ describe("GenerateLcParams", () => {
 
     await model.upsert({
       ...aLolliPopPubKeys,
+      assertionRef: aSha256AssertionRef as any,
       expiredAt: date_fns.addDays(new Date(), -1000)
     })();
 
