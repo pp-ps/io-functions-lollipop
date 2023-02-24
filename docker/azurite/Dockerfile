@@ -6,7 +6,7 @@ RUN apk update && apk upgrade && \
   apk add --no-cache bash git openssh
 
 RUN git clone https://github.com/Azure/Azurite /opt/azurite && \
-  git checkout legacy-master
+  git checkout v3.22.0
 
 RUN npm install
 
