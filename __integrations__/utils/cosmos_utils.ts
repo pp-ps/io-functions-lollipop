@@ -19,7 +19,9 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 const endpoint = getRequiredStringEnv("COSMOSDB_URI");
 const key = getRequiredStringEnv("COSMOSDB_KEY");
-const storageConnectionString = getRequiredStringEnv("STORAGE_CONN_STRING");
+const storageConnectionString = getRequiredStringEnv(
+  "LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING"
+);
 export const cosmosDatabaseName = getRequiredStringEnv("COSMOSDB_NAME");
 
 //in jest 27 fail is no longer defined, we can define this function as workaround
