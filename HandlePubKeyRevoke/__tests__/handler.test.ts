@@ -5,7 +5,6 @@ import { RevokeAssertionRefInfo } from "@pagopa/io-functions-commons/dist/src/en
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import {
-  AssertionFileName,
   NotPendingLolliPopPubKeys,
   PendingLolliPopPubKeys
 } from "../../model/lollipop_keys";
@@ -15,6 +14,7 @@ import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/d
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import * as jose from "jose";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
+import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
 
 const contextMock = {
   log: {
