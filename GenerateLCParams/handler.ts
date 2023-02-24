@@ -29,7 +29,6 @@ import { flow, pipe } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import * as dateUtils from "date-fns";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LcParams } from "../generated/definitions/internal/LcParams";
 import { GenerateLcParamsPayload } from "../generated/definitions/internal/GenerateLcParamsPayload";
@@ -104,7 +103,7 @@ export const GenerateLCParamsHandler = (
         TE.fromEither,
         TE.map(activePubKey =>
           ResponseSuccessJson({
-            assertion_file_name: `${activePubKey.assertionFileName}` as NonEmptyString,
+            assertion_file_name: activePubKey.assertionFileName,
             assertion_ref: activePubKey.assertionRef,
             assertion_type: activePubKey.assertionType,
             expired_at: activePubKey.expiredAt,

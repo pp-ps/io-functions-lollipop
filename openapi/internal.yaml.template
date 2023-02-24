@@ -172,6 +172,8 @@ components:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRefSha512"
     AssertionRef:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRef"
+    AssertionFileName:
+      $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionFileName"
     OperationId:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/OperationId"
 
@@ -256,8 +258,7 @@ components:
             fiscal_code:
               $ref: "#/components/schemas/FiscalCode"
             assertion_file_name:
-              type: string
-              minLength: 1
+              $ref: "#/components/schemas/AssertionFileName"
             assertion_type:
               $ref: "#/components/schemas/AssertionType"
             expired_at:

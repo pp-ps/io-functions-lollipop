@@ -6,11 +6,7 @@ import {
   CosmosdbModelVersionedTTL,
   RetrievedVersionedModelTTL
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model_versioned_ttl";
-import {
-  FiscalCode,
-  NonEmptyString,
-  PatternString
-} from "@pagopa/ts-commons/lib/strings";
+import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { Container, RequestOptions } from "@azure/cosmos";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
@@ -23,6 +19,7 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { pipe } from "fp-ts/lib/function";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 
 export const LOLLIPOPKEYS_COLLECTION_NAME = "lollipop-pubkeys";
 export const LOLLIPOPKEYS_MODEL_PK_FIELD = "assertionRef" as const;
@@ -36,12 +33,6 @@ export type Ttl = t.TypeOf<typeof Ttl>;
 export const TTL_VALUE_FOR_RESERVATION = 900 as NonNegativeInteger; // 15m
 // The time for which we want to keep the lolliPopPubKeys
 export const TTL_VALUE_AFTER_UPDATE = 63072000 as NonNegativeInteger; // 2y
-
-// fiscal code - AssertionRefsha256 | AssertionRefSha384 | AssertionRefSha512
-export const AssertionFileName = PatternString(
-  "^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]-(sha256-[A-Za-z0-9-_=]{1,44}|sha384-[A-Za-z0-9-_=]{1,66}|sha512-[A-Za-z0-9-_=]{1,88})$"
-);
-export type AssertionFileName = t.TypeOf<typeof AssertionFileName>;
 
 export const PendingLolliPopPubKeys = t.interface({
   assertionRef: AssertionRef,
