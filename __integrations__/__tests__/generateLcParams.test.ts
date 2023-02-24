@@ -125,7 +125,7 @@ describe("GenerateLcParams", () => {
       aNotExistingSha256AssertionRef,
       aGenerateLcParamsPayload
     );
-    expect(result.status).toEqual(403);
+    expect(result.status).toEqual(404);
   });
 
   test("GIVEN an expired public key WHEN calling generateLcParams THEN return Forbidden", async () => {
