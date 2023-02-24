@@ -38,10 +38,7 @@ services:
       - "traefik.http.routers.functions.middlewares=testHeader"
 
   fnstorage:
-    image: azurite
-    build:
-      context: ./
-      dockerfile: docker/azurite/Dockerfile
+    image: mcr.microsoft.com/azure-storage/azurite:3.9.0
     ports:
       - "10000:10000"
       - "10001:10001"
@@ -50,7 +47,7 @@ services:
       - io-fn
 
   storage:
-    image: azurite
+    image: mcr.microsoft.com/azure-storage/azurite:3.9.0
     command: ["sh", "-c", "node bin/azurite -l /opt/azurite/folder --blobPort 10003 --queuePort 10004 --tablePort 10005"]
     ports:
       - "10003:10003"

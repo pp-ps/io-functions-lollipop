@@ -288,9 +288,7 @@ describe("handleRevoke", () => {
     expect(result).toEqual(
       expect.objectContaining({
         kind: "PERMANENT",
-        reason: expect.stringContaining(
-          "Cannot calculate master key jwk's thumbprint"
-        )
+        reason: expect.stringContaining("Can not calculate JwkThumbprint ")
       })
     );
   });

@@ -1,5 +1,4 @@
 import { AzureFunction, Context } from "@azure/functions";
-import { JwkPubKeyHashAlgorithmEnum } from "../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import {
   LolliPOPKeysModel,
   LOLLIPOPKEYS_COLLECTION_NAME
@@ -8,6 +7,7 @@ import { initTelemetryClient } from "../utils/appinsights";
 import { getConfigOrThrow } from "../utils/config";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { Failure } from "../utils/errors";
+import { MASTER_HASH_ALGO } from "../utils/lollipopKeys";
 import { handleRevoke } from "./handler";
 
 const config = getConfigOrThrow();
@@ -20,8 +20,6 @@ const telemetryClient = initTelemetryClient(
   config.APPINSIGHTS_INSTRUMENTATIONKEY
 );
 
-const masterAlgo = JwkPubKeyHashAlgorithmEnum.sha512;
-
 export const index: AzureFunction = (
   context: Context,
   rawRevokeMessage: unknown
@@ -30,7 +28,7 @@ export const index: AzureFunction = (
     context,
     telemetryClient,
     lollipopKeysModel,
-    masterAlgo,
+    MASTER_HASH_ALGO,
     rawRevokeMessage
   );
 

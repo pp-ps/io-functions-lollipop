@@ -36,7 +36,7 @@ describe("getAllAssertionsRef", () => {
     expect(E.isLeft(result)).toBeTruthy();
     if (E.isLeft(result)) {
       expect(result.left.message).toEqual(
-        expect.stringContaining("Cannot calculate master key jwk's thumbprint")
+        expect.stringContaining("Can not calculate JwkThumbprint ")
       );
     }
   });
