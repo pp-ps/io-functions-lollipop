@@ -18,6 +18,7 @@ import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 
 const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 30 as NonNegativeInteger;
+
 // ----------------------------
 // JWT Configuration
 // ----------------------------
