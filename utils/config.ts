@@ -15,27 +15,49 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 
-const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 30 as NonNegativeInteger;
+import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 
-// global app configuration
+const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 30 as NonNegativeInteger;
+// ----------------------------
+// JWT Configuration
+// ----------------------------
+export type JWTConfig = t.TypeOf<typeof JWTConfig>;
+export const JWTConfig = t.intersection([
+  t.type({
+    ISSUER: NonEmptyString,
+    // Default 15min = 60s * 15m
+    JWT_TTL: withDefault(t.string, "900").pipe(NumberFromString),
+
+    PRIMARY_PRIVATE_KEY: NonEmptyString,
+    PRIMARY_PUBLIC_KEY: NonEmptyString
+  }),
+  t.partial({
+    SECONDARY_PUBLIC_KEY: NonEmptyString
+  })
+]);
+
+// ----------------------------
+// Global app configuration
+// ----------------------------
 export type IConfig = t.TypeOf<typeof IConfig>;
 // eslint-disable-next-line @typescript-eslint/ban-types
-export const IConfig = t.interface({
-  APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-  AzureWebJobsStorage: NonEmptyString,
+export const IConfig = t.intersection([
+  t.interface({
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
+    AzureWebJobsStorage: NonEmptyString,
 
-  COSMOSDB_KEY: NonEmptyString,
-  COSMOSDB_NAME: NonEmptyString,
-  COSMOSDB_URI: NonEmptyString,
-
-  KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS: withDefault(
-    NonNegativeInteger,
-    DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
-  ),
-  LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
-
-  isProduction: t.boolean
-});
+    COSMOSDB_KEY: NonEmptyString,
+    COSMOSDB_NAME: NonEmptyString,
+    COSMOSDB_URI: NonEmptyString,
+    KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS: withDefault(
+      NonNegativeInteger,
+      DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
+    ),
+    LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
+    isProduction: t.boolean
+  }),
+  JWTConfig
+]);
 
 export const envConfig = {
   ...process.env,
