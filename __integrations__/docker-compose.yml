@@ -20,10 +20,7 @@ services:
       - ${COSMOSDB_PORT}:3000
 
   storage-account:
-    image: azurite
-    build:
-      context: ../docker/azurite
-      dockerfile: ./Dockerfile
+    image: mcr.microsoft.com/azure-storage/azurite:3.9.0
     ports:
       - 10000:10000
       - 10001:10001
@@ -53,6 +50,11 @@ services:
     volumes:
       - "./:/usr/src/app"
       - "../openapi:/usr/src/openapi"
+      - "../model:/usr/src/model"
+      - "../generated:/usr/src/generated"
+      - "../__mocks__:/usr/src/__mocks__"
+      - "../node_modules:/usr/src/node_modules"
+      - "../utils:/usr/src/utils"
     depends_on:
       - cosmosdb
       - storage-account

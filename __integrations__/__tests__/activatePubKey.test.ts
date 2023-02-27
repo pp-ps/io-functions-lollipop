@@ -19,8 +19,11 @@ import {
   COSMOSDB_URI,
   COSMOSDB_KEY,
   COSMOSDB_NAME,
-  QueueStorageConnection
+  QueueStorageConnection,
+  LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
 } from "../env";
+import { createQueues } from "../__mocks__/utils/azure_storage";
+import { QueueServiceClient } from "@azure/storage-queue";
 
 const MAX_ATTEMPT = 50;
 
@@ -41,6 +44,10 @@ const cosmosClient = new CosmosClient({
   key: COSMOSDB_KEY
 });
 
+const queueClient = QueueServiceClient.fromConnectionString(
+  LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
+);
+
 // eslint-disable-next-line functional/no-let
 let database: Database;
 
@@ -49,10 +56,16 @@ beforeAll(async () => {
   database = await pipe(
     createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
     TE.getOrElse(e => {
-      throw Error("Cannot create db");
+      throw Error("Cannot create infra resources");
     })
   )();
 
+  await pipe(
+    TE.fromTask(createQueues(queueClient, ["revoke-queue"])),
+    TE.getOrElse(() => {
+      throw Error("Cannot create queues");
+    })
+  )();
   // await pipe(
   //   createBlobs(blobService, [MESSAGE_CONTAINER_NAME]),
   //   TE.getOrElse(() => {
