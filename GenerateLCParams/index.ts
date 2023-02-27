@@ -12,6 +12,7 @@ import {
   LOLLIPOPKEYS_COLLECTION_NAME
 } from "../model/lollipop_keys";
 import { getConfigOrThrow } from "../utils/config";
+import { getGenerateAuthJWT } from "../utils/auth_jwt";
 import { GenerateLCParams } from "./handler";
 
 const lollipopKeysModel = new LolliPOPKeysModel(
@@ -26,7 +27,11 @@ secureExpressApp(app);
 
 app.post(
   "/api/v1/pubKeys/:assertion_ref/generate",
-  GenerateLCParams(lollipopKeysModel, config.KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS)
+  GenerateLCParams(
+    lollipopKeysModel,
+    config.KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS,
+    getGenerateAuthJWT(config)
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

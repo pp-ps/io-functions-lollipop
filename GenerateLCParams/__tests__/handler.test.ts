@@ -4,7 +4,10 @@ import * as O from "fp-ts/lib/Option";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { GenerateLcParamsPayload } from "../../generated/definitions/internal/GenerateLcParamsPayload";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { NotPendingLolliPopPubKeys } from "../../model/lollipop_keys";
+import {
+  NotPendingLolliPopPubKeys,
+  TTL_VALUE_AFTER_UPDATE
+} from "../../model/lollipop_keys";
 import {
   aLolliPopPubKeys,
   anAssertionRef,
@@ -13,6 +16,7 @@ import {
 } from "../../__mocks__/lollipopkeysMock";
 import * as date_fns from "date-fns";
 
+const anAuthJwt = "anAuthJwt" as NonEmptyString;
 const contextMock = {} as any;
 const defaultGracePeriod = 30 as NonNegativeInteger;
 const anExpiredOutOfGracePeriodDate = date_fns.addDays(
@@ -41,6 +45,10 @@ const lollipopKeysModelMock = {
   findLastVersionByModelId: findLastVersionByModelIdMock
 } as any;
 
+const anAuthJwtGeneratorMock = jest
+  .fn()
+  .mockImplementation(_ => TE.of(anAuthJwt));
+
 describe("GenerateLCParamsHandler", () => {
   it("GIVEN a valid input WHEN retrieve operation on cosmos fail THEN it should return an Internal server error", async () => {
     findLastVersionByModelIdMock.mockImplementationOnce(() =>
@@ -48,7 +56,8 @@ describe("GenerateLCParamsHandler", () => {
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
@@ -65,7 +74,8 @@ describe("GenerateLCParamsHandler", () => {
     findLastVersionByModelIdMock.mockImplementationOnce(() => TE.right(O.none));
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
@@ -82,7 +92,8 @@ describe("GenerateLCParamsHandler", () => {
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
@@ -103,12 +114,39 @@ describe("GenerateLCParamsHandler", () => {
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(result).toEqual(
       expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized"
+      })
+    );
+  });
+
+  it("GIVEN a valid input WHEN LC auth Jwt generation fails THEN returns Internal Server Error", async () => {
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.right(O.some(aValidRetrievedLollipopPubKey))
+    );
+    anAuthJwtGeneratorMock.mockImplementationOnce(() =>
+      TE.left(Error("Cannot generate JWT"))
+    );
+
+    const result = await GenerateLCParamsHandler(
+      lollipopKeysModelMock,
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
+    )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
+
+    expect(anAuthJwtGeneratorMock).toHaveBeenCalledWith({
+      assertionRef: anAssertionRef,
+      operationId: aValidGenerateLcParamsPayload.operation_id
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseErrorInternal"
       })
     );
   });
@@ -124,9 +162,14 @@ describe("GenerateLCParamsHandler", () => {
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
+    expect(anAuthJwtGeneratorMock).toHaveBeenCalledWith({
+      assertionRef: anAssertionRef,
+      operationId: aValidGenerateLcParamsPayload.operation_id
+    });
     expect(result).toEqual(
       expect.objectContaining({
         kind: "IResponseSuccessJson"
@@ -140,13 +183,27 @@ describe("GenerateLCParamsHandler", () => {
     );
     const result = await GenerateLCParamsHandler(
       lollipopKeysModelMock,
-      defaultGracePeriod
+      defaultGracePeriod,
+      anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
-    //TODO Add expected output's payload
+    expect(anAuthJwtGeneratorMock).toHaveBeenCalledWith({
+      assertionRef: anAssertionRef,
+      operationId: aValidGenerateLcParamsPayload.operation_id
+    });
     expect(result).toEqual(
       expect.objectContaining({
-        kind: "IResponseSuccessJson"
+        kind: "IResponseSuccessJson",
+        value: expect.objectContaining({
+          assertion_file_name: aValidRetrievedLollipopPubKey.assertionFileName,
+          assertion_ref: aValidRetrievedLollipopPubKey.assertionRef,
+          assertion_type: aValidRetrievedLollipopPubKey.assertionType,
+          fiscal_code: aValidRetrievedLollipopPubKey.fiscalCode,
+          lc_authentication_bearer: anAuthJwt,
+          pub_key: aValidRetrievedLollipopPubKey.pubKey,
+          status: aValidRetrievedLollipopPubKey.status,
+          ttl: TTL_VALUE_AFTER_UPDATE
+        })
       })
     );
   });

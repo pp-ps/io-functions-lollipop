@@ -37,6 +37,7 @@ import {
   RetrievedLolliPopPubKeys
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+import { getGenerateAuthJWT } from "../utils/auth_jwt";
 
 // TODO Refactor after other PR merge
 const ValidRetrievedLolliPopPubKeys = t.intersection([
@@ -70,7 +71,8 @@ type IGenerateLCParamsHandler = (
  */
 export const GenerateLCParamsHandler = (
   lollipopKeysModel: LolliPOPKeysModel,
-  expireGracePeriodInDays: NonNegativeInteger
+  expireGracePeriodInDays: NonNegativeInteger,
+  authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): IGenerateLCParamsHandler => async (
   _,
   assertionRef,
@@ -101,15 +103,28 @@ export const GenerateLCParamsHandler = (
           )
         ),
         TE.fromEither,
-        TE.map(activePubKey =>
+        TE.bindTo("activePubKey"),
+        TE.bindW("lcAuthJwt", () =>
+          pipe(
+            authJwtGenerator({
+              assertionRef,
+              operationId: payload.operation_id
+            }),
+            TE.mapLeft(e =>
+              ResponseErrorInternal(
+                `Cannot generate LC Auth JWT|ERROR=${e.message}`
+              )
+            )
+          )
+        ),
+        TE.map(({ activePubKey, lcAuthJwt }) =>
           ResponseSuccessJson({
             assertion_file_name: activePubKey.assertionFileName,
             assertion_ref: activePubKey.assertionRef,
             assertion_type: activePubKey.assertionType,
             expired_at: activePubKey.expiredAt,
             fiscal_code: activePubKey.fiscalCode,
-            // generateJWT here
-            lc_authentication_bearer: payload.operation_id,
+            lc_authentication_bearer: lcAuthJwt,
             pub_key: activePubKey.pubKey,
             status: activePubKey.status,
             ttl: pipe(
@@ -132,11 +147,13 @@ export const GenerateLCParamsHandler = (
 // eslint-disable-next-line max-params, prefer-arrow/prefer-arrow-functions
 export function GenerateLCParams(
   lollipopKeysModel: LolliPOPKeysModel,
-  expireGracePeriodInDays: NonNegativeInteger
+  expireGracePeriodInDays: NonNegativeInteger,
+  authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): express.RequestHandler {
   const handler = GenerateLCParamsHandler(
     lollipopKeysModel,
-    expireGracePeriodInDays
+    expireGracePeriodInDays,
+    authJwtGenerator
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
