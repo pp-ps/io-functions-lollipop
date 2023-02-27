@@ -24,6 +24,7 @@ import {
   aPendingLolliPopPubKeys
 } from "../../__mocks__/lollipopkeysMock";
 import * as date_fns from "date-fns";
+import * as jwt from "jsonwebtoken";
 
 const MAX_ATTEMPT = 50;
 
@@ -87,7 +88,6 @@ describe("GenerateLcParams", () => {
     const model = new LolliPOPKeysModel(
       database.container(LOLLIPOPKEYS_COLLECTION_NAME)
     );
-
     await model.upsert(aLolliPopPubKeys)();
 
     const result = await fetchGenerateLcParams(
@@ -97,8 +97,18 @@ describe("GenerateLcParams", () => {
     const content = await result.json();
     expect(content).toEqual(
       expect.objectContaining({
+        assertion_file_name: aLolliPopPubKeys.assertionFileName,
+        assertion_ref: aLolliPopPubKeys.assertionRef,
+        assertion_type: aLolliPopPubKeys.assertionType,
+        fiscal_code: aLolliPopPubKeys.fiscalCode,
         pub_key: aLolliPopPubKeys.pubKey,
         status: aLolliPopPubKeys.status
+      })
+    );
+    expect(jwt.decode(content.lc_authentication_bearer)).toEqual(
+      expect.objectContaining({
+        assertionRef: anAssertionRef,
+        operationId: aGenerateLcParamsPayload.operation_id
       })
     );
   });
