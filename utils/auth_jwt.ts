@@ -59,10 +59,6 @@ export const getValidateAuthJWT = ({
     validateJWTFunction => (token): ReturnType<ValidateAuthJWT> =>
       pipe(
         validateJWTFunction(token),
-        TE.chain(
-          TE.fromPredicate(AuthJWT.is, () =>
-            E.toError("Invalid AuthJWT payload")
-          )
-        )
+        TE.filterOrElse(AuthJWT.is, () => E.toError("Invalid AuthJWT payload"))
       )
   );
