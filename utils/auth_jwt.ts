@@ -7,9 +7,16 @@ import { pipe } from "fp-ts/lib/function";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 import { Second } from "@pagopa/ts-commons/lib/units";
+import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
+import {
+  IResponseErrorValidation,
+  ResponseErrorValidation
+} from "@pagopa/ts-commons/lib/responses";
+import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { OperationId } from "../generated/definitions/internal/OperationId";
 
+import { LollipopAuthBearer } from "../generated/definitions/external/LollipopAuthBearer";
 import { getGenerateJWT, getValidateJWT } from "./jwt_with_key_rotation";
 
 import { JWTConfig } from "./config";
@@ -62,3 +69,36 @@ export const getValidateAuthJWT = ({
         TE.filterOrElse(AuthJWT.is, () => E.toError("Invalid AuthJWT payload"))
       )
   );
+
+/**
+ * A middleware that verify the jwt
+ *
+ * @param jwtConfig the config for the jwt
+ * */
+
+export const verifyJWTMiddleware = (
+  jwtConfig: JWTConfig
+): IRequestMiddleware<"IResponseErrorValidation", AuthJWT> => (
+  req
+): Promise<E.Either<IResponseErrorValidation, AuthJWT>> =>
+  pipe(
+    req.headers["x-pagopa-lollipop-auth"],
+    LollipopAuthBearer.decode,
+    E.mapLeft(e =>
+      ResponseErrorValidation(
+        "LollipopAuthBearer decode failed",
+        readableReportSimplified(e)
+      )
+    ),
+    E.map(authBearer => authBearer.replace("Bearer ", "") as NonEmptyString),
+    TE.fromEither,
+    TE.chain(token =>
+      pipe(
+        token,
+        getValidateAuthJWT(jwtConfig),
+        TE.mapLeft(({ message }) =>
+          ResponseErrorValidation("Invalid authJWT", message)
+        )
+      )
+    )
+  )();

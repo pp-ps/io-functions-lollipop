@@ -4,11 +4,16 @@ import * as E from "fp-ts/Either";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
-import { AuthJWT, getGenerateAuthJWT, getValidateAuthJWT } from "../auth_jwt";
+import {
+  AuthJWT,
+  getGenerateAuthJWT,
+  getValidateAuthJWT,
+  verifyJWTMiddleware
+} from "../auth_jwt";
 
 import { JWTConfig } from "../config";
 
-import { aPrimaryKey } from "../../__mocks__/keys";
+import { aPrimaryKey, aSecondaryKey } from "../../__mocks__/keys";
 import { getGenerateJWT } from "../jwt_with_key_rotation";
 import { Second } from "@pagopa/ts-commons/lib/units";
 import { pipe } from "fp-ts/lib/function";
@@ -31,6 +36,11 @@ const aConfigWithPrimaryKey = pipe(
     throw Error("Cannot decode IConfig " + JSON.stringify(_));
   })
 );
+
+const aConfigWithTwoPrimaryKeys = {
+  ...aConfigWithPrimaryKey,
+  SECONDARY_PUBLIC_KEY: aSecondaryKey.publicKey
+};
 
 describe("getGenerateJWT", () => {
   it("should generate a valid AuthJWT", async () => {
@@ -82,6 +92,38 @@ describe("getValidateJWT - Failures", () => {
       );
     }
   });
+});
+
+describe("VerifyJWTMiddleware", () => {
+  it("\
+    GIVEN a Valid jwtConfig\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a valid AuthJWT\
+    ", async () => {
+    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
+    expect(E.isRight(authJwt)).toBeTruthy();
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    if (E.isRight(authJwt)) {
+      const req = {
+        headers: {
+          "x-pagopa-lollipop-auth": `Bearer ${authJwt.right}`
+        }
+      } as any;
+
+      expect(await middleware(req)).toMatchObject({
+        _tag: "Right",
+        right: expect.objectContaining({
+          assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
+          operationId: "anOperationId",
+          iss: "test-issuer"
+        })
+      });
+    }
+  });
+
+  // TODO add more tests
 });
 
 // -------------------
