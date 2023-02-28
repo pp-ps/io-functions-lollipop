@@ -156,7 +156,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
     expect(popDocumentWriterMock).toHaveBeenNthCalledWith(2, {
       pubKey: aPendingRetrievedPopDocument.pubKey,
@@ -165,7 +165,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
 
     expect(res.kind).toBe("IResponseSuccessJson");
@@ -227,7 +227,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
 
     expect(res.kind).toBe("IResponseSuccessJson");
