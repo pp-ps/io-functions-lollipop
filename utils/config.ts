@@ -10,8 +10,9 @@ import * as t from "io-ts";
 import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 
-import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
@@ -23,8 +24,11 @@ export const IConfig = t.interface({
   COSMOSDB_KEY: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
-
   LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
+  LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
+    NonEmptyString,
+    "assertions" as NonEmptyString
+  ),
 
   isProduction: t.boolean
 });
@@ -56,6 +60,8 @@ export const getConfigOrThrow = (): IConfig =>
   pipe(
     errorOrConfig,
     E.getOrElseW((errors: ReadonlyArray<t.ValidationError>) => {
-      throw new Error(`Invalid configuration: ${readableReport(errors)}`);
+      throw new Error(
+        `Invalid configuration: ${reporters.readableReportSimplified(errors)}`
+      );
     })
   );
