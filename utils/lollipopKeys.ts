@@ -5,6 +5,7 @@ import * as O from "fp-ts/Option";
 import { flow, pipe } from "fp-ts/lib/function";
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import * as t from "io-ts";
+import { RetrievedVersionedModelTTL } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model_versioned_ttl";
 import {
   JwkPubKeyHashAlgorithm,
   JwkPubKeyHashAlgorithmEnum
@@ -13,11 +14,21 @@ import { AssertionRefSha512 } from "../generated/definitions/internal/AssertionR
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { AssertionRefSha384 } from "../generated/definitions/internal/AssertionRefSha384";
 import { AssertionRefSha256 } from "../generated/definitions/internal/AssertionRefSha256";
+import { ActivatedPubKey } from "../generated/definitions/internal/ActivatedPubKey";
+import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+
+import {
+  Ttl,
+  ValidLolliPopPubKeys,
+  RetrievedLolliPopPubKeys,
+  PendingLolliPopPubKeys,
+  RevokedLolliPopPubKeys
+} from "../model/lollipop_keys";
+
 import { assertNever } from "./errors";
 import { calculateThumbprint } from "./thumbprint";
 
 export const MASTER_HASH_ALGO = JwkPubKeyHashAlgorithmEnum.sha512;
-
 export const AssertionRefByType = t.intersection([
   t.type({
     master: AssertionRef
@@ -106,3 +117,64 @@ export const getAllAssertionsRef = (
       )
     )
   );
+
+export const RetrievedValidPopDocument = t.intersection([
+  ValidLolliPopPubKeys,
+  Ttl,
+  RetrievedVersionedModelTTL
+]);
+export type RetrievedValidPopDocument = t.TypeOf<
+  typeof RetrievedValidPopDocument
+>;
+
+export const RetrievedPendingPopDocument = t.intersection([
+  PendingLolliPopPubKeys,
+  Ttl,
+  RetrievedVersionedModelTTL
+]);
+export type RetrievedPendingPopDocument = t.TypeOf<
+  typeof RetrievedPendingPopDocument
+>;
+
+export const RetrievedRevokedPopDocument = t.intersection([
+  RevokedLolliPopPubKeys,
+  Ttl,
+  RetrievedVersionedModelTTL
+]);
+export type RetrievedRevokedPopDocument = t.TypeOf<
+  typeof RetrievedRevokedPopDocument
+>;
+
+// ------------------------
+// Type guards utilities
+// ------------------------
+
+export const isPendingLollipopPubKey = (
+  rd: RetrievedLolliPopPubKeys
+): rd is RetrievedPendingPopDocument => rd.status === PubKeyStatusEnum.PENDING;
+
+export const isValidLollipopPubKey = (
+  rd: RetrievedLolliPopPubKeys
+): rd is RetrievedValidPopDocument => rd.status === PubKeyStatusEnum.VALID;
+
+export const isRevokenLollipopPubKey = (
+  rd: RetrievedLolliPopPubKeys
+): rd is RetrievedRevokedPopDocument => rd.status === PubKeyStatusEnum.REVOKED;
+
+// ------------------------
+// Mapping utilities
+// ------------------------
+
+export const retrievedLollipopKeysToApiActivatedPubKey = (
+  popDocument: RetrievedValidPopDocument
+): ActivatedPubKey => ({
+  assertion_file_name: popDocument.assertionFileName,
+  assertion_ref: popDocument.assertionRef,
+  assertion_type: popDocument.assertionType,
+  expired_at: popDocument.expiredAt,
+  fiscal_code: popDocument.fiscalCode,
+  pub_key: popDocument.pubKey,
+  status: popDocument.status,
+  ttl: popDocument.ttl,
+  version: popDocument.version
+});

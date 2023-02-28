@@ -5,9 +5,9 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "route": "api/v1/pubkeys",
+      "route": "api/v1/pubKeys/{assertion_ref}",
       "methods": [
-        "post"
+        "put"
       ]
     },
     {
@@ -16,5 +16,5 @@
       "name": "res"
     }
   ],
-  "scriptFile": "../dist/ReservePubKey/index.js"
+  "scriptFile": "../dist/ActivatePubKey/index.js"
 }

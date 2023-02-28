@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable sort-keys */
 import { exit } from "process";
-
-import { Database } from "@azure/cosmos";
-
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
@@ -13,26 +10,25 @@ import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 
 import { WAIT_MS, SHOW_LOGS, COSMOSDB_URI, COSMOSDB_NAME } from "../env";
+import { fetchReservePubKey } from "../utils/client";
 
 const MAX_ATTEMPT = 50;
 
 jest.setTimeout(WAIT_MS * MAX_ATTEMPT);
 
 const baseUrl = "http://function:7071";
-const fetch = getNodeFetch();
+const nodeFetch = (getNodeFetch() as unknown) as typeof fetch;
 
 // ----------------
 // Setup dbs
 // ----------------
 
 // eslint-disable-next-line functional/no-let
-let database: Database;
-
 // Wait some time
 beforeAll(async () => {
-  database = await pipe(
+  await pipe(
     createCosmosDbAndCollections(COSMOSDB_NAME),
-    TE.getOrElse(e => {
+    TE.getOrElse(() => {
       throw Error("Cannot create db");
     })
   )();
@@ -70,20 +66,13 @@ const anotherReservePubKeyPayload = {
   }
 };
 
-const RESERVE_PUB_KEY_PATH = "api/v1/pubkeys";
-const fetchReservePubKey = (body: unknown) =>
-  fetch(`${baseUrl}/${RESERVE_PUB_KEY_PATH}`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-
 describe("ReservePubKey", () => {
   test("GIVEN a new public key WHEN reserve the key THEN return a success containing the assertion ref", async () => {
-    const result = await fetchReservePubKey(aReservePubKeyPayload);
+    const result = await fetchReservePubKey(
+      aReservePubKeyPayload,
+      baseUrl,
+      nodeFetch
+    );
     const content = await result.json();
     expect(content).toEqual(
       expect.objectContaining({
@@ -93,27 +82,47 @@ describe("ReservePubKey", () => {
   });
 
   test("GIVEN an already reserved public key WHEN reserve the key with any algo THEN return a conflict", async () => {
-    const reserve = await fetchReservePubKey(anotherReservePubKeyPayload);
+    const reserve = await fetchReservePubKey(
+      anotherReservePubKeyPayload,
+      baseUrl,
+      nodeFetch
+    );
     expect(reserve.status).toEqual(201);
 
-    const fail = await fetchReservePubKey(anotherReservePubKeyPayload);
+    const fail = await fetchReservePubKey(
+      anotherReservePubKeyPayload,
+      baseUrl,
+      nodeFetch
+    );
     expect(fail.status).toEqual(409);
 
-    const failWith512 = await fetchReservePubKey({
-      ...anotherReservePubKeyPayload,
-      algo: "sha512"
-    });
+    const failWith512 = await fetchReservePubKey(
+      {
+        ...anotherReservePubKeyPayload,
+        algo: "sha512"
+      },
+      baseUrl,
+      nodeFetch
+    );
     expect(failWith512.status).toEqual(409);
 
-    const failWith384 = await fetchReservePubKey({
-      ...anotherReservePubKeyPayload,
-      algo: "sha384"
-    });
+    const failWith384 = await fetchReservePubKey(
+      {
+        ...anotherReservePubKeyPayload,
+        algo: "sha384"
+      },
+      baseUrl,
+      nodeFetch
+    );
     expect(failWith384.status).toEqual(409);
   });
 
   test("GIVEN a malformed public key WHEN reserve the key THEN return a bad request", async () => {
-    const reserve = await fetchReservePubKey({ wrong: "wrong" });
+    const reserve = await fetchReservePubKey(
+      { wrong: "wrong" },
+      baseUrl,
+      nodeFetch
+    );
     expect(reserve.status).toEqual(400);
   });
 });
@@ -132,7 +141,7 @@ const waitFunctionToSetup = async (): Promise<void> => {
   while (i < MAX_ATTEMPT) {
     log("Waiting the function to setup..");
     try {
-      await fetch(baseUrl + "/info");
+      await nodeFetch(baseUrl + "/info");
       break;
     } catch (e) {
       log("Waiting the function to setup...|" + JSON.stringify(e));

@@ -10,7 +10,7 @@ import * as t from "io-ts";
 import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 
-import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
@@ -55,6 +55,11 @@ export const IConfig = t.intersection([
       DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
     ),
     LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
+    LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
+      NonEmptyString,
+      "assertions" as NonEmptyString
+    ),
+
     isProduction: t.boolean
   }),
   JWTConfig
@@ -87,6 +92,8 @@ export const getConfigOrThrow = (): IConfig =>
   pipe(
     errorOrConfig,
     E.getOrElseW((errors: ReadonlyArray<t.ValidationError>) => {
-      throw new Error(`Invalid configuration: ${readableReport(errors)}`);
+      throw new Error(
+        `Invalid configuration: ${reporters.readableReportSimplified(errors)}`
+      );
     })
   );

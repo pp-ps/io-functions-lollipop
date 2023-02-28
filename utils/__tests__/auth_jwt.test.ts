@@ -38,8 +38,6 @@ describe("getGenerateJWT", () => {
 
     const res = await generateJWT(aPayload)();
 
-    console.log(res);
-
     expect(res).toMatchObject(
       E.right(expect.stringMatching(`[A-Za-z0-9-_]{1,520}`))
     );

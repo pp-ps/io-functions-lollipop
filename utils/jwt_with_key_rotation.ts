@@ -94,7 +94,7 @@ export const validateJWTWithKey: (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<jwt.JwtPayload>((verify, reject) => {
+        new Promise<jwt.JwtPayload>((resolve, reject) => {
           jwt.verify(
             token,
             key,
@@ -105,7 +105,7 @@ export const validateJWTWithKey: (
               } else if (!decoded) {
                 reject("Unable to decode token");
               } else {
-                verify(decoded as jwt.JwtPayload);
+                resolve(decoded as jwt.JwtPayload);
               }
             }
           );
