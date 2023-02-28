@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  version: 1.0.1
+  version: 1.0.2
   title: IO Lollipop Function API
   x-logo:
     url: https://io.italia.it/assets/img/io-logo-blue.svg
@@ -93,12 +93,6 @@ paths:
           description: Forbidden
         '404':
           description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemJson'
-        '409':
-          description: Conflict
           content:
             application/json:
               schema:
@@ -247,6 +241,13 @@ components:
         - $ref: '#/components/schemas/AssertionRefSha256'
         - $ref: '#/components/schemas/AssertionRefSha384'
         - $ref: '#/components/schemas/AssertionRefSha512'
+    AssertionFileName:
+      type: string
+      description: >-
+        fiscal code - AssertionRefSha256 | AssertionRefSha384 |
+        AssertionRefSha512
+      pattern: >-
+        ^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]-(sha256-[A-Za-z0-9-_=]{1,44}|sha384-[A-Za-z0-9-_=]{1,66}|sha512-[A-Za-z0-9-_=]{1,88})$
     OperationId:
       type: string
       minLength: 1
@@ -315,13 +316,13 @@ components:
           type: string
           description: A string representation of a signed SPID/CIE assertion
           minLength: 1
-        expires_at:
+        expired_at:
           $ref: '#/components/schemas/Timestamp'
       required:
         - fiscal_code
         - assertion_type
         - assertion
-        - expires_at
+        - expired_at
     ActivatedPubKey:
       allOf:
         - $ref: '#/components/schemas/NewPubKey'
@@ -330,26 +331,22 @@ components:
             fiscal_code:
               $ref: '#/components/schemas/FiscalCode'
             assertion_file_name:
-              type: string
-              minLength: 1
+              $ref: '#/components/schemas/AssertionFileName'
             assertion_type:
               $ref: '#/components/schemas/AssertionType'
-            expires_at:
+            expired_at:
               $ref: '#/components/schemas/Timestamp'
           required:
             - fiscal_code
             - assertion_file_name
             - assertion_type
-            - expires_at
+            - expired_at
     GenerateLcParamsPayload:
       type: object
       properties:
-        assertion_ref:
-          $ref: '#/components/schemas/AssertionRef'
         operation_id:
           $ref: '#/components/schemas/OperationId'
       required:
-        - assertion_ref
         - operation_id
     LcParams:
       allOf:
