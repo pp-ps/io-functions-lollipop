@@ -34,6 +34,7 @@ import { ErrorKind } from "../../utils/errors";
 import { contextMock } from "../../__mocks__/context.mock";
 
 const aFiscalCode = "SPNDNL80A13Y555X" as FiscalCode;
+const expiresAtDate = new Date(); // Now
 
 const aValidRetrievedPopDocument: RetrievedLolliPopPubKeys = {
   pubKey: toEncodedJwk(aValidJwk),
@@ -43,7 +44,7 @@ const aValidRetrievedPopDocument: RetrievedLolliPopPubKeys = {
   assertionFileName: `${aFiscalCode}-${aValidSha256AssertionRef}` as AssertionFileName,
   status: PubKeyStatusEnum.VALID,
   fiscalCode: aFiscalCode,
-  expiredAt: new Date(),
+  expiredAt: expiresAtDate,
   id: "1" as NonEmptyString,
   version: 1 as NonNegativeInteger,
   ...aCosmosResourceMetadata
@@ -91,8 +92,6 @@ const popDocumentWriterMock = jest.fn(
 const assertionWriterMock = jest.fn(
   () => TE.of(true) as ReturnType<AssertionWriter>
 );
-
-const expiresAtDate = new Date(); // Now
 
 const aValidPayload: ActivatePubKeyPayload = {
   fiscal_code: aFiscalCode,
@@ -156,7 +155,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
     expect(popDocumentWriterMock).toHaveBeenNthCalledWith(2, {
       pubKey: aPendingRetrievedPopDocument.pubKey,
@@ -165,7 +164,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
 
     expect(res.kind).toBe("IResponseSuccessJson");
@@ -227,7 +226,7 @@ describe("activatePubKey handler", () => {
       status: PubKeyStatusEnum.VALID,
       assertionType: aValidActivatePubKeyPayload.assertion_type,
       fiscalCode: aValidActivatePubKeyPayload.fiscal_code,
-      expiredAt: aValidActivatePubKeyPayload.expired_at
+      expiredAt: expiresAtDate
     });
 
     expect(res.kind).toBe("IResponseSuccessJson");
