@@ -73,7 +73,7 @@ const cosmosClient = new CosmosClient({
 // Wait some time
 beforeAll(async () => {
   await pipe(
-    createCosmosDbAndCollections(cosmosClient),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(() => {
       throw Error("Cannot create infra resources");
     })

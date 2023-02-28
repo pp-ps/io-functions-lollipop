@@ -5,11 +5,11 @@ import { upsertBlobFromText } from "@pagopa/io-functions-commons/dist/src/utils/
 import { BlobService } from "azure-storage";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
-  AssertionFileName,
   LolliPOPKeysModel,
   NewLolliPopPubKeys,
   RetrievedLolliPopPubKeys
 } from "../model/lollipop_keys";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 import {
   cosmosErrorsToString,
   ErrorKind,

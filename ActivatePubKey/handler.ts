@@ -27,10 +27,7 @@ import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { ActivatePubKeyPayload } from "../generated/definitions/internal/ActivatePubKeyPayload";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
-import {
-  AssertionFileName,
-  RetrievedLolliPopPubKeys
-} from "../model/lollipop_keys";
+import { RetrievedLolliPopPubKeys } from "../model/lollipop_keys";
 
 import { AssertionWriter, PopDocumentWriter } from "../utils/writers";
 import { PopDocumentReader } from "../utils/readers";
@@ -42,6 +39,7 @@ import {
   getAlgoFromAssertionRef,
   getAllAssertionsRef
 } from "../utils/lollipopKeys";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 
 export const activatePubKeyForAssertionRef = (
   popDocumentWriter: PopDocumentWriter,

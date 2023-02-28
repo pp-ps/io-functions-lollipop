@@ -15,7 +15,6 @@ import {
   IResponseSuccessJson,
   ResponseErrorForbiddenNotAuthorized,
   ResponseErrorInternal,
-  ResponseErrorNotFound,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 
@@ -24,32 +23,17 @@ import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/m
 
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import * as O from "fp-ts/lib/Option";
 import { flow, pipe } from "fp-ts/lib/function";
-import * as t from "io-ts";
 import * as dateUtils from "date-fns";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LcParams } from "../generated/definitions/internal/LcParams";
 import { GenerateLcParamsPayload } from "../generated/definitions/internal/GenerateLcParamsPayload";
-import {
-  LolliPOPKeysModel,
-  RetrievedLolliPopPubKeys
-} from "../model/lollipop_keys";
-import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 import { getGenerateAuthJWT } from "../utils/auth_jwt";
-
-// TODO Refactor after other PR merge
-const ValidRetrievedLolliPopPubKeys = t.intersection([
-  RetrievedLolliPopPubKeys,
-  t.type({
-    status: t.literal(PubKeyStatusEnum.VALID)
-  })
-]);
-
-type ValidRetrievedLolliPopPubKeys = t.TypeOf<
-  typeof ValidRetrievedLolliPopPubKeys
->;
+import { isValidLollipopPubKey } from "../utils/lollipopKeys";
+import { PopDocumentReader } from "../utils/readers";
+import { domainErrorToResponseError } from "../utils/errors";
+import { retrievedLollipopKeysToApiLcParams } from "../utils/lollipopKeys";
 
 /**
  * Type of a GenerateLCParams handler
@@ -70,7 +54,7 @@ type IGenerateLCParamsHandler = (
  * Handles requests for generating Lollipop Consumer required params.
  */
 export const GenerateLCParamsHandler = (
-  lollipopKeysModel: LolliPOPKeysModel,
+  popDocumentReader: PopDocumentReader,
   expireGracePeriodInDays: NonNegativeInteger,
   authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): IGenerateLCParamsHandler => async (
@@ -79,21 +63,14 @@ export const GenerateLCParamsHandler = (
   payload
 ): ReturnType<IGenerateLCParamsHandler> =>
   pipe(
-    lollipopKeysModel.findLastVersionByModelId([assertionRef]),
-    TE.mapLeft(e =>
-      ResponseErrorInternal(
-        `Cannot query for assertionRef on CosmosDB|ERROR=${JSON.stringify(e)}`
-      )
-    ),
-    TE.chainW(
-      TE.fromOption(() =>
-        ResponseErrorNotFound("AssertionRef not found", "Not Found")
-      )
-    ),
+    popDocumentReader(assertionRef),
+    TE.mapLeft(domainErrorToResponseError),
     TE.chainW(
       flow(
-        ValidRetrievedLolliPopPubKeys.decode,
-        E.mapLeft(() => ResponseErrorForbiddenNotAuthorized),
+        E.fromPredicate(
+          isValidLollipopPubKey,
+          () => ResponseErrorForbiddenNotAuthorized
+        ),
         E.chain(
           E.fromPredicate(
             usedPubKeyDocument =>
@@ -118,23 +95,9 @@ export const GenerateLCParamsHandler = (
           )
         ),
         TE.map(({ activePubKey, lcAuthJwt }) =>
-          ResponseSuccessJson({
-            assertion_file_name: activePubKey.assertionFileName,
-            assertion_ref: activePubKey.assertionRef,
-            assertion_type: activePubKey.assertionType,
-            expired_at: activePubKey.expiredAt,
-            fiscal_code: activePubKey.fiscalCode,
-            lc_authentication_bearer: lcAuthJwt,
-            pub_key: activePubKey.pubKey,
-            status: activePubKey.status,
-            ttl: pipe(
-              activePubKey.ttl,
-              O.fromNullable,
-              O.chainEitherK(NonNegativeInteger.decode),
-              O.getOrElse(() => 0 as NonNegativeInteger)
-            ),
-            version: activePubKey.version
-          })
+          ResponseSuccessJson(
+            retrievedLollipopKeysToApiLcParams(activePubKey, lcAuthJwt)
+          )
         )
       )
     ),
@@ -146,12 +109,12 @@ export const GenerateLCParamsHandler = (
  */
 // eslint-disable-next-line max-params, prefer-arrow/prefer-arrow-functions
 export function GenerateLCParams(
-  lollipopKeysModel: LolliPOPKeysModel,
+  popDocumentReader: PopDocumentReader,
   expireGracePeriodInDays: NonNegativeInteger,
   authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): express.RequestHandler {
   const handler = GenerateLCParamsHandler(
-    lollipopKeysModel,
+    popDocumentReader,
     expireGracePeriodInDays,
     authJwtGenerator
   );

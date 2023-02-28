@@ -13,6 +13,7 @@ import {
 } from "../model/lollipop_keys";
 import { getConfigOrThrow } from "../utils/config";
 import { getGenerateAuthJWT } from "../utils/auth_jwt";
+import { getPopDocumentReader } from "../utils/readers";
 import { GenerateLCParams } from "./handler";
 
 const lollipopKeysModel = new LolliPOPKeysModel(
@@ -28,7 +29,7 @@ secureExpressApp(app);
 app.post(
   "/api/v1/pubKeys/:assertion_ref/generate",
   GenerateLCParams(
-    lollipopKeysModel,
+    getPopDocumentReader(lollipopKeysModel),
     config.KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS,
     getGenerateAuthJWT(config)
   )

@@ -1,7 +1,6 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import {
-  AssertionFileName,
   NewLolliPopPubKeys,
   RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE
@@ -32,6 +31,7 @@ import {
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 import { ErrorKind } from "../../utils/errors";
 import { contextMock } from "../../__mocks__/context.mock";
+import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
 
 const aFiscalCode = "SPNDNL80A13Y555X" as FiscalCode;
 const expiresAtDate = new Date(); // Now

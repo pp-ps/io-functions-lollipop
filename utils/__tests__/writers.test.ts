@@ -13,7 +13,6 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 
 import {
-  AssertionFileName,
   LolliPOPKeysModel,
   NewLolliPopPubKeys
 } from "../../model/lollipop_keys";
@@ -34,6 +33,7 @@ import {
   blobServiceMock,
   doesBlobExistMock
 } from "../../__mocks__/blobService.mock";
+import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
 
 // --------------------------
 // Mocks

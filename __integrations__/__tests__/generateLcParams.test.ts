@@ -2,22 +2,26 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 
-import { Database } from "@azure/cosmos";
-
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
-import { createCosmosDbAndCollections } from "../utils/fixtures";
+import {
+  createCosmosDbAndCollections,
+  LOLLIPOP_COSMOSDB_COLLECTION_NAME
+} from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 
-import { WAIT_MS, SHOW_LOGS, COSMOSDB_URI, COSMOSDB_NAME } from "../env";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
-  LolliPOPKeysModel,
-  LOLLIPOPKEYS_COLLECTION_NAME
-} from "../../model/lollipop_keys";
+  WAIT_MS,
+  SHOW_LOGS,
+  COSMOSDB_URI,
+  COSMOSDB_NAME,
+  COSMOSDB_KEY
+} from "../env";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { LolliPOPKeysModel } from "../../model/lollipop_keys";
 import {
   aLolliPopPubKeys,
   anAssertionRef,
@@ -37,12 +41,15 @@ const fetch = getNodeFetch();
 // Setup dbs
 // ----------------
 
-// eslint-disable-next-line functional/no-let
-let database: Database;
+// @ts-ignore
+const cosmosClient = new CosmosClient({
+  endpoint: COSMOSDB_URI,
+  key: COSMOSDB_KEY
+});
 
 // Wait some time
 beforeAll(async () => {
-  database = await pipe(
+  await pipe(
     createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(e => {
       throw Error("Cannot create db");
@@ -59,6 +66,10 @@ beforeEach(() => {
 // -------------------------
 // Tests
 // -------------------------
+
+const cosmosInstance = cosmosClient.database(COSMOSDB_NAME);
+const container = cosmosInstance.container(LOLLIPOP_COSMOSDB_COLLECTION_NAME);
+const model = new LolliPOPKeysModel(container);
 
 const aGenerateLcParamsPayload = {
   operation_id: "an_operation_id" as NonEmptyString
@@ -85,9 +96,6 @@ const fetchGenerateLcParams = (assertionRef: string, body: unknown) =>
 
 describe("GenerateLcParams", () => {
   test("GIVEN a new correctly initialized public key WHEN calling generateLcParams THEN return a success containing LcParams", async () => {
-    const model = new LolliPOPKeysModel(
-      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
-    );
     await model.upsert(aLolliPopPubKeys)();
 
     const result = await fetchGenerateLcParams(
@@ -114,10 +122,6 @@ describe("GenerateLcParams", () => {
   });
 
   test("GIVEN a pending public key WHEN calling generateLcParams THEN return Forbidden", async () => {
-    const model = new LolliPOPKeysModel(
-      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
-    );
-
     await model.create({
       ...aPendingLolliPopPubKeys,
       assertionRef: aPendingSha256AssertionRef as any
@@ -139,10 +143,6 @@ describe("GenerateLcParams", () => {
   });
 
   test("GIVEN an expired public key WHEN calling generateLcParams THEN return Forbidden", async () => {
-    const model = new LolliPOPKeysModel(
-      database.container(LOLLIPOPKEYS_COLLECTION_NAME)
-    );
-
     await model.upsert({
       ...aLolliPopPubKeys,
       assertionRef: aSha256AssertionRef as any,

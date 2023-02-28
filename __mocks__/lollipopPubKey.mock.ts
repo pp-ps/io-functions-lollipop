@@ -9,10 +9,8 @@ import { AssertionTypeEnum } from "../generated/definitions/internal/AssertionTy
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
-import {
-  AssertionFileName,
-  PendingLolliPopPubKeys
-} from "../model/lollipop_keys";
+import { PendingLolliPopPubKeys } from "../model/lollipop_keys";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 
 export const aFiscalCode = "AAAAAA89S20I111X" as FiscalCode;
 
