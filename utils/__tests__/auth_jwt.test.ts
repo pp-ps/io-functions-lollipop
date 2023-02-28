@@ -96,7 +96,7 @@ describe("getValidateJWT - Failures", () => {
 
 describe("VerifyJWTMiddleware", () => {
   it("\
-    GIVEN a Valid jwtConfig\
+    GIVEN a Valid jwtConfig and a valid x-pagopa-lollipop-auth\
     WHEN VerifyJWTMiddleware is called\
     THEN it should return a valid AuthJWT\
     ", async () => {
@@ -123,7 +123,61 @@ describe("VerifyJWTMiddleware", () => {
     }
   });
 
-  // TODO add more tests
+  it("\
+    GIVEN a Valid jwtConfig and an empty x-pagopa-lollipop-auth\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorValidation\
+    ", async () => {
+    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
+    expect(E.isRight(authJwt)).toBeTruthy();
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    if (E.isRight(authJwt)) {
+      const req = {
+        headers: {
+          "x-pagopa-lollipop-auth": ""
+        }
+      } as any;
+
+      expect(await middleware(req)).toMatchObject({
+        _tag: "Left",
+        left: expect.objectContaining({
+          kind: "IResponseErrorValidation",
+          detail:
+            'LollipopAuthBearer decode failed: value "" at root is not a valid [string that matches the pattern "^Bearer [a-zA-Z0-9-_].+"]'
+        })
+      });
+    }
+  });
+
+  it("\
+    GIVEN a Valid jwtConfig and an invalid x-pagopa-lollipop-auth\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorValidation\
+    ", async () => {
+    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
+    const invalidAuth = "invalidAuth";
+    expect(E.isRight(authJwt)).toBeTruthy();
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    if (E.isRight(authJwt)) {
+      const req = {
+        headers: {
+          "x-pagopa-lollipop-auth": invalidAuth
+        }
+      } as any;
+
+      expect(await middleware(req)).toMatchObject({
+        _tag: "Left",
+        left: expect.objectContaining({
+          kind: "IResponseErrorValidation",
+          detail: `LollipopAuthBearer decode failed: value "${invalidAuth}" at root is not a valid [string that matches the pattern "^Bearer [a-zA-Z0-9-_].+"]`
+        })
+      });
+    }
+  });
 });
 
 // -------------------
