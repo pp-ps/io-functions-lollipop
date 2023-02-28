@@ -14,7 +14,6 @@ import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
-import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 // ----------------------------
 // JWT Configuration
