@@ -3,7 +3,7 @@
   "description": "",
   "author": "IO team",
   "repository": "https://github.com/pagopa/io-functions-lollipop",
-  "version": "1.0.2",
+  "version": "1.3.0",
   "license": "MIT",
   "scripts": {
     "prebuild": "shx rm -rf dist && npm run generate",
