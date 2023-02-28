@@ -29,6 +29,7 @@ import {
 } from "../../__mocks__/lollipopkeysMock";
 import * as date_fns from "date-fns";
 import * as jwt from "jsonwebtoken";
+import { CosmosClient } from "@azure/cosmos";
 
 const MAX_ATTEMPT = 50;
 

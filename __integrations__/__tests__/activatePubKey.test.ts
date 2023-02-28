@@ -48,6 +48,7 @@ import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal
 import { MASTER_HASH_ALGO } from "../../utils/lollipopKeys";
 import { createBlobService } from "azure-storage";
 import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
+import { CosmosClient } from "@azure/cosmos";
 
 const MAX_ATTEMPT = 50;
 
