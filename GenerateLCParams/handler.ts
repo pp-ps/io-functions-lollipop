@@ -22,8 +22,7 @@ import { Context } from "@azure/functions";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
 import * as TE from "fp-ts/lib/TaskEither";
-import * as E from "fp-ts/lib/Either";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as dateUtils from "date-fns";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
@@ -72,51 +71,44 @@ export const GenerateLCParamsHandler = (
   pipe(
     popDocumentReader(assertionRef),
     TE.mapLeft(domainErrorToResponseError),
-    TE.chainW(
-      flow(
-        E.fromPredicate(isValidLollipopPubKey, doc =>
+    TE.filterOrElseW(isValidLollipopPubKey, doc =>
+      logAndReturnResponse(
+        context,
+        ResponseErrorForbiddenNotAuthorized,
+        `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${doc.status}`
+      )
+    ),
+    TE.filterOrElseW(
+      usedPubKeyDocument =>
+        usedPubKeyDocument.expiredAt.getTime() >
+        dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
+      doc =>
+        logAndReturnResponse(
+          context,
+          ResponseErrorForbiddenNotAuthorized,
+          `Pop document expired at ${doc.expiredAt} with grace period of ${expireGracePeriodInDays} days`
+        )
+    ),
+    TE.bindTo("activePubKey"),
+    TE.bindW("lcAuthJwt", () =>
+      pipe(
+        authJwtGenerator({
+          assertionRef,
+          operationId: payload.operation_id
+        }),
+        TE.mapLeft(e =>
           logAndReturnResponse(
             context,
-            ResponseErrorForbiddenNotAuthorized,
-            `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${doc.status}`
-          )
-        ),
-        E.chain(
-          E.fromPredicate(
-            usedPubKeyDocument =>
-              usedPubKeyDocument.expiredAt.getTime() >
-              dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
-            doc =>
-              logAndReturnResponse(
-                context,
-                ResponseErrorForbiddenNotAuthorized,
-                `Pop document expired at ${doc.expiredAt} with grace period of ${expireGracePeriodInDays} days`
-              )
-          )
-        ),
-        TE.fromEither,
-        TE.bindTo("activePubKey"),
-        TE.bindW("lcAuthJwt", () =>
-          pipe(
-            authJwtGenerator({
-              assertionRef,
-              operationId: payload.operation_id
-            }),
-            TE.mapLeft(e =>
-              logAndReturnResponse(
-                context,
-                ResponseErrorInternal(
-                  `Cannot generate LC Auth JWT|ERROR=${e.message}`
-                )
-              )
+            ResponseErrorInternal(
+              `Cannot generate LC Auth JWT|ERROR=${e.message}`
             )
           )
-        ),
-        TE.map(({ activePubKey, lcAuthJwt }) =>
-          ResponseSuccessJson(
-            retrievedLollipopKeysToApiLcParams(activePubKey, lcAuthJwt)
-          )
         )
+      )
+    ),
+    TE.map(({ activePubKey, lcAuthJwt }) =>
+      ResponseSuccessJson(
+        retrievedLollipopKeysToApiLcParams(activePubKey, lcAuthJwt)
       )
     ),
     TE.toUnion
