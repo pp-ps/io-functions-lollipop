@@ -12,7 +12,10 @@ import { pipe } from "fp-ts/lib/function";
 
 import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import {
+  NonNegativeInteger,
+  NonNegativeIntegerFromString
+} from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
@@ -51,9 +54,9 @@ export const IConfig = t.intersection([
     COSMOSDB_NAME: NonEmptyString,
     COSMOSDB_URI: NonEmptyString,
     KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS: withDefault(
-      NonNegativeInteger,
-      DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS
-    ),
+      t.string,
+      `${DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS}`
+    ).pipe(NonNegativeIntegerFromString),
     LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
     LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
       NonEmptyString,
