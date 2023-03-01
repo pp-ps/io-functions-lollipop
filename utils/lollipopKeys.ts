@@ -159,9 +159,14 @@ export const isValidLollipopPubKey = (
   rd: RetrievedLolliPopPubKeys
 ): rd is RetrievedValidPopDocument => rd.status === PubKeyStatusEnum.VALID;
 
-export const isRevokenLollipopPubKey = (
+export const isRevokedLollipopPubKey = (
   rd: RetrievedLolliPopPubKeys
 ): rd is RetrievedRevokedPopDocument => rd.status === PubKeyStatusEnum.REVOKED;
+
+export const isNotPendingLollipopPubKey = (
+  rd: RetrievedLolliPopPubKeys
+): rd is RetrievedValidPopDocument | RetrievedRevokedPopDocument =>
+  rd.status !== PubKeyStatusEnum.PENDING;
 
 // ------------------------
 // Mapping utilities
