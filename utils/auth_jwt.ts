@@ -82,7 +82,7 @@ export const verifyJWTMiddleware = (
   req
 ): Promise<E.Either<IResponseErrorValidation, AuthJWT>> =>
   pipe(
-    req.headers["x-pagopa-lollipop-auth"],
+    req.headers[jwtConfig.BEARER_AUTH_HEADER],
     LollipopAuthBearer.decode,
     E.mapLeft(e =>
       ResponseErrorValidation(

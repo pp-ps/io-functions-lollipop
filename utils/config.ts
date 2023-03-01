@@ -26,7 +26,8 @@ export const JWTConfig = t.intersection([
     JWT_TTL: withDefault(t.string, "900").pipe(NumberFromString),
 
     PRIMARY_PRIVATE_KEY: NonEmptyString,
-    PRIMARY_PUBLIC_KEY: NonEmptyString
+    PRIMARY_PUBLIC_KEY: NonEmptyString,
+    BEARER_AUTH_HEADER: NonEmptyString
   }),
   t.partial({
     SECONDARY_PUBLIC_KEY: NonEmptyString
@@ -59,6 +60,7 @@ export const IConfig = t.intersection([
 
 export const envConfig = {
   ...process.env,
+  BEARER_AUTH_HEADER: "x-pagopa-lollipop-auth",
   isProduction: process.env.NODE_ENV === "production"
 };
 
