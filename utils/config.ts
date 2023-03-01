@@ -21,13 +21,13 @@ import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 export type JWTConfig = t.TypeOf<typeof JWTConfig>;
 export const JWTConfig = t.intersection([
   t.type({
+    BEARER_AUTH_HEADER: NonEmptyString,
     ISSUER: NonEmptyString,
     // Default 15min = 60s * 15m
     JWT_TTL: withDefault(t.string, "900").pipe(NumberFromString),
 
     PRIMARY_PRIVATE_KEY: NonEmptyString,
-    PRIMARY_PUBLIC_KEY: NonEmptyString,
-    BEARER_AUTH_HEADER: NonEmptyString
+    PRIMARY_PUBLIC_KEY: NonEmptyString
   }),
   t.partial({
     SECONDARY_PUBLIC_KEY: NonEmptyString

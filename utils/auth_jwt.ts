@@ -9,14 +9,13 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { Second } from "@pagopa/ts-commons/lib/units";
 import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
 import {
-  IResponseErrorValidation,
-  ResponseErrorValidation
+  getResponseErrorForbiddenNotAuthorized,
+  IResponseErrorForbiddenNotAuthorized
 } from "@pagopa/ts-commons/lib/responses";
-import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { OperationId } from "../generated/definitions/internal/OperationId";
 
-import { LollipopAuthBearer } from "../generated/definitions/external/LollipopAuthBearer";
+import { LollipopAuthBearer as JWTAuthBearer } from "../generated/definitions/external/LollipopAuthBearer";
 import { getGenerateJWT, getValidateJWT } from "./jwt_with_key_rotation";
 
 import { JWTConfig } from "./config";
@@ -78,16 +77,15 @@ export const getValidateAuthJWT = ({
 
 export const verifyJWTMiddleware = (
   jwtConfig: JWTConfig
-): IRequestMiddleware<"IResponseErrorValidation", AuthJWT> => (
+): IRequestMiddleware<"IResponseErrorForbiddenNotAuthorized", AuthJWT> => (
   req
-): Promise<E.Either<IResponseErrorValidation, AuthJWT>> =>
+): Promise<E.Either<IResponseErrorForbiddenNotAuthorized, AuthJWT>> =>
   pipe(
     req.headers[jwtConfig.BEARER_AUTH_HEADER],
-    LollipopAuthBearer.decode,
-    E.mapLeft(e =>
-      ResponseErrorValidation(
-        "LollipopAuthBearer decode failed",
-        readableReportSimplified(e)
+    JWTAuthBearer.decode,
+    E.mapLeft(_ =>
+      getResponseErrorForbiddenNotAuthorized(
+        `Invalid or missing JWT in header ${jwtConfig.BEARER_AUTH_HEADER}`
       )
     ),
     E.map(authBearer => authBearer.replace("Bearer ", "") as NonEmptyString),
@@ -96,8 +94,8 @@ export const verifyJWTMiddleware = (
       pipe(
         token,
         getValidateAuthJWT(jwtConfig),
-        TE.mapLeft(({ message }) =>
-          ResponseErrorValidation("Invalid authJWT", message)
+        TE.mapLeft(_ =>
+          getResponseErrorForbiddenNotAuthorized("Invalid or expired JWT")
         )
       )
     )

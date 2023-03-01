@@ -1,5 +1,5 @@
 import * as jwt from "jsonwebtoken";
-
+import * as express from "express";
 import * as E from "fp-ts/Either";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -30,7 +30,8 @@ const aConfigWithPrimaryKey = pipe(
   JWTConfig.decode({
     ISSUER: issuer,
     PRIMARY_PRIVATE_KEY: aPrimaryKey.privateKey,
-    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey
+    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey,
+    BEARER_AUTH_HEADER: "x-pagopa-lollipop-auth"
   }),
   E.getOrElseW(_ => {
     throw Error("Cannot decode IConfig " + JSON.stringify(_));
@@ -106,13 +107,13 @@ describe("VerifyJWTMiddleware", () => {
     const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
 
     if (E.isRight(authJwt)) {
-      const req = {
+      const mockReq = ({
         headers: {
           "x-pagopa-lollipop-auth": `Bearer ${authJwt.right}`
         }
-      } as any;
+      } as unknown) as express.Request;
 
-      expect(await middleware(req)).toMatchObject({
+      expect(await middleware(mockReq)).toMatchObject({
         _tag: "Right",
         right: expect.objectContaining({
           assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
@@ -126,85 +127,75 @@ describe("VerifyJWTMiddleware", () => {
   it("\
     GIVEN a Valid jwtConfig and an empty x-pagopa-lollipop-auth\
     WHEN VerifyJWTMiddleware is called\
-    THEN it should return a IResponseErrorValidation\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized\
     ", async () => {
-    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
-    expect(E.isRight(authJwt)).toBeTruthy();
-
     const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
 
-    if (E.isRight(authJwt)) {
-      const req = {
-        headers: {
-          "x-pagopa-lollipop-auth": ""
-        }
-      } as any;
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": ""
+      }
+    } as unknown) as express.Request;
 
-      expect(await middleware(req)).toMatchObject({
-        _tag: "Left",
-        left: expect.objectContaining({
-          kind: "IResponseErrorValidation",
-          detail:
-            'LollipopAuthBearer decode failed: value "" at root is not a valid [string that matches the pattern "^Bearer [a-zA-Z0-9-_].+"]'
-        })
-      });
-    }
+    expect(await middleware(mockReq)).toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining(
+          `Invalid or missing JWT in header ${aConfigWithTwoPrimaryKeys.BEARER_AUTH_HEADER}`
+        )
+      })
+    });
   });
 
   it("\
     GIVEN a Valid jwtConfig and an invalid x-pagopa-lollipop-auth\
     WHEN VerifyJWTMiddleware is called\
-    THEN it should return a IResponseErrorValidation containing LollipopAuthBearer decode failed\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized\
     ", async () => {
-    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
     const invalidAuth = "invalidAuth";
-    expect(E.isRight(authJwt)).toBeTruthy();
 
     const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
 
-    if (E.isRight(authJwt)) {
-      const req = {
-        headers: {
-          "x-pagopa-lollipop-auth": invalidAuth
-        }
-      } as any;
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": invalidAuth
+      }
+    } as unknown) as express.Request;
 
-      expect(await middleware(req)).toMatchObject({
-        _tag: "Left",
-        left: expect.objectContaining({
-          kind: "IResponseErrorValidation",
-          detail: expect.stringContaining("LollipopAuthBearer decode failed")
-        })
-      });
-    }
+    expect(await middleware(mockReq)).toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining(
+          `Invalid or missing JWT in header ${aConfigWithTwoPrimaryKeys.BEARER_AUTH_HEADER}`
+        )
+      })
+    });
   });
 
   it("\
     GIVEN a Valid jwtConfig and an x-pagopa-lollipop-auth valid ONLY for regex pattern\
     WHEN VerifyJWTMiddleware is called\
-    THEN it should return a IResponseErrorValidation containing Invalid authJWT\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized containing Invalid or expired JWT\
     ", async () => {
-    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
     const invalidAuth = "Bearer aa";
-    expect(E.isRight(authJwt)).toBeTruthy();
 
     const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
 
-    if (E.isRight(authJwt)) {
-      const req = {
-        headers: {
-          "x-pagopa-lollipop-auth": invalidAuth
-        }
-      } as any;
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": invalidAuth
+      }
+    } as unknown) as express.Request;
 
-      expect(await middleware(req)).toMatchObject({
-        _tag: "Left",
-        left: expect.objectContaining({
-          kind: "IResponseErrorValidation",
-          detail: expect.stringContaining("Invalid authJWT")
-        })
-      });
-    }
+    expect(await middleware(mockReq)).toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining("Invalid or expired JWT")
+      })
+    });
   });
 });
 
