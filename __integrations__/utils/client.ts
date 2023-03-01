@@ -49,3 +49,20 @@ export const fetchGenerateLcParams = (
       body: JSON.stringify(body)
     }
   );
+
+export const GET_ASSERTION_PATH = "api/v1/assertions";
+export const fetchGetAssertion = (
+  assertionRef: string,
+  jwtHeaderName: string,
+  jwt: string,
+  baseUrl: string,
+  nodeFetch: typeof fetch
+) =>
+  nodeFetch(`${baseUrl}/${GET_ASSERTION_PATH}/${assertionRef}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      [jwtHeaderName]: jwt
+    }
+  });

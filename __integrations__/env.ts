@@ -10,3 +10,6 @@ export const COSMOSDB_KEY = process.env.COSMOSDB_KEY ?? "";
 export const COSMOSDB_NAME = process.env.COSMOSDB_NAME ?? "db";
 export const LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING =
   process.env.LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING ?? "";
+
+export const BEARER_AUTH_HEADER = process.env.BEARER_AUTH_HEADER ?? "";
+
