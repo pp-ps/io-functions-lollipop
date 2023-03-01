@@ -7,9 +7,15 @@ import { pipe } from "fp-ts/lib/function";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 import { Second } from "@pagopa/ts-commons/lib/units";
+import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
+import {
+  getResponseErrorForbiddenNotAuthorized,
+  IResponseErrorForbiddenNotAuthorized
+} from "@pagopa/ts-commons/lib/responses";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { OperationId } from "../generated/definitions/internal/OperationId";
 
+import { LollipopAuthBearer as JWTAuthBearer } from "../generated/definitions/external/LollipopAuthBearer";
 import { getGenerateJWT, getValidateJWT } from "./jwt_with_key_rotation";
 
 import { JWTConfig } from "./config";
@@ -62,3 +68,36 @@ export const getValidateAuthJWT = ({
         TE.filterOrElse(AuthJWT.is, () => E.toError("Invalid AuthJWT payload"))
       )
   );
+
+/**
+ * A middleware that verify the jwt and returns the payload
+ *
+ * @param jwtConfig the config for the jwt
+ * */
+
+export const verifyJWTMiddleware = (
+  jwtConfig: JWTConfig
+): IRequestMiddleware<"IResponseErrorForbiddenNotAuthorized", AuthJWT> => (
+  req
+  // TODO refactor in order to use this method witha generic type
+): Promise<E.Either<IResponseErrorForbiddenNotAuthorized, AuthJWT>> =>
+  pipe(
+    req.headers[jwtConfig.BEARER_AUTH_HEADER],
+    JWTAuthBearer.decode,
+    E.mapLeft(_ =>
+      getResponseErrorForbiddenNotAuthorized(
+        `Invalid or missing JWT in header ${jwtConfig.BEARER_AUTH_HEADER}`
+      )
+    ),
+    E.map(authBearer => authBearer.replace("Bearer ", "") as NonEmptyString),
+    TE.fromEither,
+    TE.chain(token =>
+      pipe(
+        token,
+        getValidateAuthJWT(jwtConfig),
+        TE.mapLeft(_ =>
+          getResponseErrorForbiddenNotAuthorized("Invalid or expired JWT")
+        )
+      )
+    )
+  )();

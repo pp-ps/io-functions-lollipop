@@ -1,14 +1,19 @@
 import * as jwt from "jsonwebtoken";
-
+import * as express from "express";
 import * as E from "fp-ts/Either";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
-import { AuthJWT, getGenerateAuthJWT, getValidateAuthJWT } from "../auth_jwt";
+import {
+  AuthJWT,
+  getGenerateAuthJWT,
+  getValidateAuthJWT,
+  verifyJWTMiddleware
+} from "../auth_jwt";
 
 import { JWTConfig } from "../config";
 
-import { aPrimaryKey } from "../../__mocks__/keys";
+import { aPrimaryKey, aSecondaryKey } from "../../__mocks__/keys";
 import { getGenerateJWT } from "../jwt_with_key_rotation";
 import { Second } from "@pagopa/ts-commons/lib/units";
 import { pipe } from "fp-ts/lib/function";
@@ -25,12 +30,18 @@ const aConfigWithPrimaryKey = pipe(
   JWTConfig.decode({
     ISSUER: issuer,
     PRIMARY_PRIVATE_KEY: aPrimaryKey.privateKey,
-    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey
+    PRIMARY_PUBLIC_KEY: aPrimaryKey.publicKey,
+    BEARER_AUTH_HEADER: "x-pagopa-lollipop-auth"
   }),
   E.getOrElseW(_ => {
     throw Error("Cannot decode IConfig " + JSON.stringify(_));
   })
 );
+
+const aConfigWithTwoPrimaryKeys = {
+  ...aConfigWithPrimaryKey,
+  SECONDARY_PUBLIC_KEY: aSecondaryKey.publicKey
+};
 
 describe("getGenerateJWT", () => {
   it("should generate a valid AuthJWT", async () => {
@@ -81,6 +92,110 @@ describe("getValidateJWT - Failures", () => {
         E.left(E.toError("Invalid AuthJWT payload"))
       );
     }
+  });
+});
+
+describe("VerifyJWTMiddleware", () => {
+  it("\
+    GIVEN a Valid jwtConfig and a valid x-pagopa-lollipop-auth\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a valid AuthJWT\
+    ", async () => {
+    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
+    expect(E.isRight(authJwt)).toBeTruthy();
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    if (E.isRight(authJwt)) {
+      const mockReq = ({
+        headers: {
+          "x-pagopa-lollipop-auth": `Bearer ${authJwt.right}`
+        }
+      } as unknown) as express.Request;
+
+      await expect(middleware(mockReq)).resolves.toMatchObject({
+        _tag: "Right",
+        right: expect.objectContaining({
+          assertionRef: aPayload.assertionRef,
+          operationId: aPayload.operationId,
+          iss: aConfigWithTwoPrimaryKeys.ISSUER
+        })
+      });
+    }
+  });
+
+  it("\
+    GIVEN a Valid jwtConfig and an empty x-pagopa-lollipop-auth\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized\
+    ", async () => {
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": ""
+      }
+    } as unknown) as express.Request;
+
+    await expect(middleware(mockReq)).resolves.toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining(
+          `Invalid or missing JWT in header ${aConfigWithTwoPrimaryKeys.BEARER_AUTH_HEADER}`
+        )
+      })
+    });
+  });
+
+  it("\
+    GIVEN a Valid jwtConfig and an invalid x-pagopa-lollipop-auth\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized\
+    ", async () => {
+    const invalidAuth = "invalidAuth";
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": invalidAuth
+      }
+    } as unknown) as express.Request;
+
+    await expect(middleware(mockReq)).resolves.toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining(
+          `Invalid or missing JWT in header ${aConfigWithTwoPrimaryKeys.BEARER_AUTH_HEADER}`
+        )
+      })
+    });
+  });
+
+  it("\
+    GIVEN a Valid jwtConfig and an x-pagopa-lollipop-auth valid ONLY for regex pattern\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorForbiddenNotAuthorized containing Invalid or expired JWT\
+    ", async () => {
+    const invalidAuth = "Bearer aa";
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    const mockReq = ({
+      headers: {
+        "x-pagopa-lollipop-auth": invalidAuth
+      }
+    } as unknown) as express.Request;
+
+    await expect(middleware(mockReq)).resolves.toMatchObject({
+      _tag: "Left",
+      left: expect.objectContaining({
+        kind: "IResponseErrorForbiddenNotAuthorized",
+        detail: expect.stringContaining("Invalid or expired JWT")
+      })
+    });
   });
 });
 
