@@ -70,7 +70,7 @@ export const getValidateAuthJWT = ({
   );
 
 /**
- * A middleware that verify the jwt
+ * A middleware that verify the jwt and returns the payload
  *
  * @param jwtConfig the config for the jwt
  * */
@@ -79,6 +79,7 @@ export const verifyJWTMiddleware = (
   jwtConfig: JWTConfig
 ): IRequestMiddleware<"IResponseErrorForbiddenNotAuthorized", AuthJWT> => (
   req
+  // TODO refactor in order to use this method witha generic type
 ): Promise<E.Either<IResponseErrorForbiddenNotAuthorized, AuthJWT>> =>
   pipe(
     req.headers[jwtConfig.BEARER_AUTH_HEADER],
