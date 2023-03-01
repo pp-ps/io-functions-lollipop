@@ -88,7 +88,10 @@ const aNotExistingSha256AssertionRef =
 
 describe("GenerateLcParams", () => {
   test("GIVEN a new correctly initialized public key WHEN calling generateLcParams THEN return a success containing LcParams", async () => {
-    await model.upsert(aLolliPopPubKeys)();
+    await model.upsert({
+      ...aLolliPopPubKeys,
+      expiredAt: date_fns.addDays(new Date(), 30)
+    })();
 
     const result = await fetchGenerateLcParams(
       anAssertionRef,
