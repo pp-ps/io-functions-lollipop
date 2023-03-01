@@ -154,7 +154,7 @@ describe("VerifyJWTMiddleware", () => {
   it("\
     GIVEN a Valid jwtConfig and an invalid x-pagopa-lollipop-auth\
     WHEN VerifyJWTMiddleware is called\
-    THEN it should return a IResponseErrorValidation\
+    THEN it should return a IResponseErrorValidation containing LollipopAuthBearer decode failed\
     ", async () => {
     const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
     const invalidAuth = "invalidAuth";
@@ -173,7 +173,35 @@ describe("VerifyJWTMiddleware", () => {
         _tag: "Left",
         left: expect.objectContaining({
           kind: "IResponseErrorValidation",
-          detail: `LollipopAuthBearer decode failed: value "${invalidAuth}" at root is not a valid [string that matches the pattern "^Bearer [a-zA-Z0-9-_].+"]`
+          detail: expect.stringContaining("LollipopAuthBearer decode failed")
+        })
+      });
+    }
+  });
+
+  it("\
+    GIVEN a Valid jwtConfig and an x-pagopa-lollipop-auth valid ONLY for regex pattern\
+    WHEN VerifyJWTMiddleware is called\
+    THEN it should return a IResponseErrorValidation containing Invalid authJWT\
+    ", async () => {
+    const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
+    const invalidAuth = "Bearer aa";
+    expect(E.isRight(authJwt)).toBeTruthy();
+
+    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+
+    if (E.isRight(authJwt)) {
+      const req = {
+        headers: {
+          "x-pagopa-lollipop-auth": invalidAuth
+        }
+      } as any;
+
+      expect(await middleware(req)).toMatchObject({
+        _tag: "Left",
+        left: expect.objectContaining({
+          kind: "IResponseErrorValidation",
+          detail: expect.stringContaining("Invalid authJWT")
         })
       });
     }
