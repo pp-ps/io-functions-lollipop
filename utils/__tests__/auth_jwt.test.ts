@@ -113,12 +113,12 @@ describe("VerifyJWTMiddleware", () => {
         }
       } as unknown) as express.Request;
 
-      expect(await middleware(mockReq)).toMatchObject({
+      await expect(middleware(mockReq)).resolves.toMatchObject({
         _tag: "Right",
         right: expect.objectContaining({
-          assertionRef: "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c",
-          operationId: "anOperationId",
-          iss: "test-issuer"
+          assertionRef: aPayload.assertionRef,
+          operationId: aPayload.operationId,
+          iss: aConfigWithTwoPrimaryKeys.ISSUER
         })
       });
     }
@@ -137,7 +137,7 @@ describe("VerifyJWTMiddleware", () => {
       }
     } as unknown) as express.Request;
 
-    expect(await middleware(mockReq)).toMatchObject({
+    await expect(middleware(mockReq)).resolves.toMatchObject({
       _tag: "Left",
       left: expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized",
@@ -163,7 +163,7 @@ describe("VerifyJWTMiddleware", () => {
       }
     } as unknown) as express.Request;
 
-    expect(await middleware(mockReq)).toMatchObject({
+    await expect(middleware(mockReq)).resolves.toMatchObject({
       _tag: "Left",
       left: expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized",
@@ -189,7 +189,7 @@ describe("VerifyJWTMiddleware", () => {
       }
     } as unknown) as express.Request;
 
-    expect(await middleware(mockReq)).toMatchObject({
+    await expect(middleware(mockReq)).resolves.toMatchObject({
       _tag: "Left",
       left: expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized",
