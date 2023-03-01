@@ -29,11 +29,18 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LcParams } from "../generated/definitions/internal/LcParams";
 import { GenerateLcParamsPayload } from "../generated/definitions/internal/GenerateLcParamsPayload";
+import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+
 import { getGenerateAuthJWT } from "../utils/auth_jwt";
-import { isValidLollipopPubKey } from "../utils/lollipopKeys";
+import {
+  isValidLollipopPubKey,
+  retrievedLollipopKeysToApiLcParams
+} from "../utils/lollipopKeys";
 import { PopDocumentReader } from "../utils/readers";
-import { domainErrorToResponseError } from "../utils/errors";
-import { retrievedLollipopKeysToApiLcParams } from "../utils/lollipopKeys";
+import {
+  domainErrorToResponseError,
+  logAndReturnResponse
+} from "../utils/errors";
 
 /**
  * Type of a GenerateLCParams handler
@@ -58,7 +65,7 @@ export const GenerateLCParamsHandler = (
   expireGracePeriodInDays: NonNegativeInteger,
   authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): IGenerateLCParamsHandler => async (
-  _,
+  context,
   assertionRef,
   payload
 ): ReturnType<IGenerateLCParamsHandler> =>
@@ -67,16 +74,24 @@ export const GenerateLCParamsHandler = (
     TE.mapLeft(domainErrorToResponseError),
     TE.chainW(
       flow(
-        E.fromPredicate(
-          isValidLollipopPubKey,
-          () => ResponseErrorForbiddenNotAuthorized
+        E.fromPredicate(isValidLollipopPubKey, doc =>
+          logAndReturnResponse(
+            context,
+            ResponseErrorForbiddenNotAuthorized,
+            `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${doc.status}`
+          )
         ),
         E.chain(
           E.fromPredicate(
             usedPubKeyDocument =>
               usedPubKeyDocument.expiredAt.getTime() >
               dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
-            () => ResponseErrorForbiddenNotAuthorized
+            doc =>
+              logAndReturnResponse(
+                context,
+                ResponseErrorForbiddenNotAuthorized,
+                `Pop document expired at ${doc.expiredAt} with grace period of ${expireGracePeriodInDays} days`
+              )
           )
         ),
         TE.fromEither,
@@ -88,8 +103,11 @@ export const GenerateLCParamsHandler = (
               operationId: payload.operation_id
             }),
             TE.mapLeft(e =>
-              ResponseErrorInternal(
-                `Cannot generate LC Auth JWT|ERROR=${e.message}`
+              logAndReturnResponse(
+                context,
+                ResponseErrorInternal(
+                  `Cannot generate LC Auth JWT|ERROR=${e.message}`
+                )
               )
             )
           )

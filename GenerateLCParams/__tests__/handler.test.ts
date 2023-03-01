@@ -18,8 +18,9 @@ import * as date_fns from "date-fns";
 import { PopDocumentReader } from "../../utils/readers";
 import { ErrorKind } from "../../utils/errors";
 
+import { contextMock } from "../../__mocks__/context.mock";
+
 const anAuthJwt = "anAuthJwt" as NonEmptyString;
-const contextMock = {} as any;
 const defaultGracePeriod = 30 as NonNegativeInteger;
 const anExpiredOutOfGracePeriodDate = date_fns.addDays(
   new Date(),
