@@ -30,13 +30,14 @@ import {
 import * as date_fns from "date-fns";
 import * as jwt from "jsonwebtoken";
 import { CosmosClient } from "@azure/cosmos";
+import { fetchGenerateLcParams } from "../utils/client";
 
 const MAX_ATTEMPT = 50;
 
 jest.setTimeout(WAIT_MS * MAX_ATTEMPT);
 
 const baseUrl = "http://function:7071";
-const fetch = getNodeFetch();
+const nodeFetch = (getNodeFetch() as unknown) as typeof fetch;
 
 // ----------------
 // Setup dbs
@@ -84,16 +85,6 @@ const aPendingSha256AssertionRef =
 
 const aNotExistingSha256AssertionRef =
   "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN1gg";
-const GENERATE_LC_PARAMS_BASE_PATH = "api/v1/pubkeys";
-const fetchGenerateLcParams = (assertionRef: string, body: unknown) =>
-  fetch(`${baseUrl}/${GENERATE_LC_PARAMS_BASE_PATH}/${assertionRef}/generate`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
 
 describe("GenerateLcParams", () => {
   test("GIVEN a new correctly initialized public key WHEN calling generateLcParams THEN return a success containing LcParams", async () => {
@@ -101,7 +92,9 @@ describe("GenerateLcParams", () => {
 
     const result = await fetchGenerateLcParams(
       anAssertionRef,
-      aGenerateLcParamsPayload
+      aGenerateLcParamsPayload,
+      baseUrl,
+      nodeFetch
     );
     const content = await result.json();
     expect(content).toEqual(
@@ -130,7 +123,9 @@ describe("GenerateLcParams", () => {
 
     const result = await fetchGenerateLcParams(
       aPendingSha256AssertionRef,
-      aGenerateLcParamsPayload
+      aGenerateLcParamsPayload,
+      baseUrl,
+      nodeFetch
     );
     expect(result.status).toEqual(403);
   });
@@ -138,7 +133,9 @@ describe("GenerateLcParams", () => {
   test("GIVEN a not existing public key WHEN calling generateLcParams THEN return Not Found", async () => {
     const result = await fetchGenerateLcParams(
       aNotExistingSha256AssertionRef,
-      aGenerateLcParamsPayload
+      aGenerateLcParamsPayload,
+      baseUrl,
+      nodeFetch
     );
     expect(result.status).toEqual(404);
   });
@@ -152,15 +149,22 @@ describe("GenerateLcParams", () => {
 
     const result = await fetchGenerateLcParams(
       aSha256AssertionRef,
-      aGenerateLcParamsPayload
+      aGenerateLcParamsPayload,
+      baseUrl,
+      nodeFetch
     );
     expect(result.status).toEqual(403);
   });
 
   test("GIVEN a malformed payload WHEN calling generateLcParams THEN return a bad request", async () => {
-    const result = await fetchGenerateLcParams(anAssertionRef, {
-      wrong: "wrong"
-    });
+    const result = await fetchGenerateLcParams(
+      anAssertionRef,
+      {
+        wrong: "wrong"
+      },
+      baseUrl,
+      nodeFetch
+    );
     expect(result.status).toEqual(400);
   });
 });
@@ -179,7 +183,7 @@ const waitFunctionToSetup = async (): Promise<void> => {
   while (i < MAX_ATTEMPT) {
     log("Waiting the function to setup..");
     try {
-      await fetch(baseUrl + "/info");
+      await nodeFetch(baseUrl + "/info");
       break;
     } catch (e) {
       log("Waiting the function to setup...|" + JSON.stringify(e));
