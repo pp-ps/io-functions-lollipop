@@ -31,7 +31,7 @@ function fail(reason = "fail was called in a test."): never {
 
 const client = new CosmosClient({ endpoint, key });
 
-const createDatabase = (
+export const createDatabase = (
   dbName: string
 ): TE.TaskEither<CosmosErrors, Database> =>
   pipe(
@@ -59,7 +59,7 @@ export const makeRandomContainerName = (): NonEmptyString => {
   return `test-${result.join("")}` as NonEmptyString;
 };
 
-const createContainer = (
+export const createContainer = (
   db: Database,
   containerName: string,
   partitionKey: string,
@@ -76,6 +76,18 @@ const createContainer = (
           indexingPolicy,
           partitionKey: `/${partitionKey}`
         }),
+      toCosmosErrorResponse
+    ),
+    TE.map(containerResponse => containerResponse.container)
+  );
+
+export const deleteContainer = (
+  db: Database,
+  containerName: string
+): TE.TaskEither<CosmosErrors, Container> =>
+  pipe(
+    TE.tryCatch(
+      () => db.container(containerName).delete(),
       toCosmosErrorResponse
     ),
     TE.map(containerResponse => containerResponse.container)

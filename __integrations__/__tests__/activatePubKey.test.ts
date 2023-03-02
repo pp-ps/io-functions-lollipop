@@ -2,24 +2,20 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 
-import { CosmosClient } from "@azure/cosmos";
-import { createBlobService } from "azure-storage";
-
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import * as jose from "jose";
 import { pipe } from "fp-ts/lib/function";
-import { getBlobAsTextWithError } from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
+
 import {
   createCosmosDbAndCollections,
   LOLLIPOP_COSMOSDB_COLLECTION_NAME
-} from "../__mocks__/fixtures";
+} from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 import {
-  AssertionFileName,
   LolliPOPKeysModel,
   NewLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
@@ -30,17 +26,18 @@ import {
   WAIT_MS,
   SHOW_LOGS,
   COSMOSDB_URI,
-  COSMOSDB_KEY,
   COSMOSDB_NAME,
-  QueueStorageConnection
+  COSMOSDB_KEY
 } from "../env";
-import { createBlobs } from "../__mocks__/utils/azure_storage";
+import { QueueStorageConnection } from "../env";
+import { createBlobs } from "../utils/azure_storage";
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 import {
   aFiscalCode,
   aValidSha256AssertionRef,
   toEncodedJwk
 } from "../../__mocks__/lollipopPubKey.mock";
+import { getBlobAsTextWithError } from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
 import { ActivatePubKeyPayload } from "../../generated/definitions/internal/ActivatePubKeyPayload";
 import { AssertionTypeEnum } from "../../generated/definitions/internal/AssertionType";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -49,6 +46,9 @@ import { AssertionRef } from "../../generated/definitions/internal/AssertionRef"
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { MASTER_HASH_ALGO } from "../../utils/lollipopKeys";
+import { createBlobService } from "azure-storage";
+import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
+import { CosmosClient } from "@azure/cosmos";
 
 const MAX_ATTEMPT = 50;
 
@@ -74,7 +74,7 @@ const cosmosClient = new CosmosClient({
 // Wait some time
 beforeAll(async () => {
   await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(() => {
       throw Error("Cannot create infra resources");
     })

@@ -12,8 +12,15 @@ import { pipe } from "fp-ts/lib/function";
 
 import * as reporters from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import {
+  NonNegativeInteger,
+  NonNegativeIntegerFromString
+} from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
+
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+
+const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 0 as NonNegativeInteger;
 
 // ----------------------------
 // JWT Configuration
@@ -47,6 +54,10 @@ export const IConfig = t.intersection([
     COSMOSDB_KEY: NonEmptyString,
     COSMOSDB_NAME: NonEmptyString,
     COSMOSDB_URI: NonEmptyString,
+    KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS: withDefault(
+      t.string,
+      `${DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS}`
+    ).pipe(NonNegativeIntegerFromString),
     LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING: NonEmptyString,
     LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME: withDefault(
       NonEmptyString,

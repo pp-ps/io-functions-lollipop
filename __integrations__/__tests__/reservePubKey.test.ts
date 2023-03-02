@@ -1,24 +1,15 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable sort-keys */
 import { exit } from "process";
-
-import { CosmosClient } from "@azure/cosmos";
-
 import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/lib/function";
 
-import { createCosmosDbAndCollections } from "../__mocks__/fixtures";
+import { createCosmosDbAndCollections } from "../utils/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
 
-import {
-  WAIT_MS,
-  SHOW_LOGS,
-  COSMOSDB_URI,
-  COSMOSDB_KEY,
-  COSMOSDB_NAME
-} from "../env";
+import { WAIT_MS, SHOW_LOGS, COSMOSDB_URI, COSMOSDB_NAME } from "../env";
 import { fetchReservePubKey } from "../utils/client";
 
 const MAX_ATTEMPT = 50;
@@ -32,18 +23,11 @@ const nodeFetch = (getNodeFetch() as unknown) as typeof fetch;
 // Setup dbs
 // ----------------
 
-console.log("COSMOSURI " + COSMOSDB_URI);
-// @ts-ignore
-const cosmosClient = new CosmosClient({
-  endpoint: COSMOSDB_URI,
-  key: COSMOSDB_KEY
-});
-
 // eslint-disable-next-line functional/no-let
 // Wait some time
 beforeAll(async () => {
   await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(() => {
       throw Error("Cannot create db");
     })

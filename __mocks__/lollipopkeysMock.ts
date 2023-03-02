@@ -5,15 +5,14 @@ import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosm
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
-  AssertionFileName,
   PendingLolliPopPubKeys,
-  LolliPopPubKeys,
   RetrievedLolliPopPubKeys,
   TTL_VALUE_AFTER_UPDATE,
   TTL_VALUE_FOR_RESERVATION,
   NotPendingLolliPopPubKeys
 } from "../model/lollipop_keys";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 
 export const aFiscalCode = "RLDBSV36A78Y792X" as FiscalCode;
 export const anAssertionRef = "sha256-p1NY7sl1d4lGvcTyYS535aZR_iJCleEIHFRE2lCHt-c" as AssertionRef;

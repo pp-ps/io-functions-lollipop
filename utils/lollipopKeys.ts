@@ -6,6 +6,7 @@ import { flow, pipe } from "fp-ts/lib/function";
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import * as t from "io-ts";
 import { RetrievedVersionedModelTTL } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model_versioned_ttl";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   JwkPubKeyHashAlgorithm,
   JwkPubKeyHashAlgorithmEnum
@@ -25,6 +26,7 @@ import {
   RevokedLolliPopPubKeys
 } from "../model/lollipop_keys";
 
+import { LcParams } from "../generated/definitions/internal/LcParams";
 import { assertNever } from "./errors";
 import { calculateThumbprint } from "./thumbprint";
 
@@ -173,6 +175,22 @@ export const retrievedLollipopKeysToApiActivatedPubKey = (
   assertion_type: popDocument.assertionType,
   expired_at: popDocument.expiredAt,
   fiscal_code: popDocument.fiscalCode,
+  pub_key: popDocument.pubKey,
+  status: popDocument.status,
+  ttl: popDocument.ttl,
+  version: popDocument.version
+});
+
+export const retrievedLollipopKeysToApiLcParams = (
+  popDocument: RetrievedValidPopDocument,
+  lcAuthenticationBearer: NonEmptyString
+): LcParams => ({
+  assertion_file_name: popDocument.assertionFileName,
+  assertion_ref: popDocument.assertionRef,
+  assertion_type: popDocument.assertionType,
+  expired_at: popDocument.expiredAt,
+  fiscal_code: popDocument.fiscalCode,
+  lc_authentication_bearer: lcAuthenticationBearer,
   pub_key: popDocument.pubKey,
   status: popDocument.status,
   ttl: popDocument.ttl,
