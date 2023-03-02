@@ -225,6 +225,28 @@ describe("getAssertion |> Validation Failures", () => {
       detail: `You do not have enough permission to complete the operation you requested`
     });
   });
+
+  it("should fail when the jwt expired", async () => {
+    const lcParams = await setupTestAndGenerateLcParams();
+
+    await delay(5500);
+
+    const response = await fetchGetAssertion(
+      lcParams.assertion_ref,
+      BEARER_AUTH_HEADER,
+      lcParams.lc_authentication_bearer,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(403);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: 403,
+      title: "You are not allowed here",
+      detail: `Invalid or expired JWT`
+    });
+  });
 });
 
 describe("getAssertion |> Success", () => {
