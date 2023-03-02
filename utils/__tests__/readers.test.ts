@@ -7,10 +7,7 @@ import * as O from "fp-ts/Option";
 
 import * as fn_commons from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
 
-import {
-  AssertionFileName,
-  LolliPOPKeysModel
-} from "../../model/lollipop_keys";
+import { LolliPOPKeysModel } from "../../model/lollipop_keys";
 import { getAssertionReader, getPopDocumentReader } from "../readers";
 
 import {

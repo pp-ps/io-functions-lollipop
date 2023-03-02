@@ -1,8 +1,8 @@
 import * as TE from "fp-ts/TaskEither";
+import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
 
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 
-import { AssertionFileName } from "../model/lollipop_keys";
 import { AssertionReader, PopDocumentReader } from "../utils/readers";
 
 import { aRetrievedPendingLollipopPubKeySha256 } from "./lollipopPubKey.mock";
