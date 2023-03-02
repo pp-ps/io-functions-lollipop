@@ -36,7 +36,7 @@ import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus
 import { AssertionReader, PopDocumentReader } from "../utils/readers";
 import { AuthJWT, verifyJWTMiddleware } from "../utils/auth_jwt";
 import { isNotPendingLollipopPubKey } from "../utils/lollipopKeys";
-import { DomainError, ErrorKind } from "../utils/errors";
+import { DomainError, ErrorKind, logAndReturnResponse } from "../utils/errors";
 import { JWTConfig } from "../utils/config";
 
 const domainErrorToResponseError = (
@@ -78,28 +78,42 @@ export const GetAssertionHandler = (
     assertionRef,
     TE.fromPredicate(
       ar => ar === jwt.assertionRef,
-      () => ResponseErrorForbiddenNotAuthorized
+      () =>
+        logAndReturnResponse(
+          context,
+          ResponseErrorForbiddenNotAuthorized,
+          `jwt assertion_ref does not match the one in path`
+        )
     ),
     TE.chainW(
       flow(
         popDocumentReader,
-        TE.mapLeft(error => {
-          // TODO after rebase
-          const err = `Error while reading pop document: ${error.kind}`;
-          context.log.error(err);
-          return domainErrorToResponseError(error);
-        }),
-        TE.filterOrElseW(isNotPendingLollipopPubKey, () => {
-          const err = `Unexpected ${PubKeyStatusEnum.PENDING} status on pop document`;
-          context.log.error(err);
-          return ResponseErrorForbiddenNotAuthorized;
-        })
+        TE.mapLeft(error =>
+          logAndReturnResponse(
+            context,
+            domainErrorToResponseError(error),
+            `Error while reading pop document: ${error.kind}`
+          )
+        ),
+        TE.filterOrElseW(isNotPendingLollipopPubKey, () =>
+          logAndReturnResponse(
+            context,
+            ResponseErrorForbiddenNotAuthorized,
+            `Unexpected ${PubKeyStatusEnum.PENDING} status on pop document`
+          )
+        )
       )
     ),
     TE.chainW(({ assertionFileName }) =>
       pipe(
         assertionReader(assertionFileName),
-        TE.mapLeft(domainErrorToResponseError),
+        TE.mapLeft(error =>
+          logAndReturnResponse(
+            context,
+            domainErrorToResponseError(error),
+            `Error while reading assertion from blob storage: ${error.kind}`
+          )
+        ),
         TE.map(assertion =>
           ResponseSuccessJson({
             response_xml: assertion
