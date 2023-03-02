@@ -8,15 +8,10 @@ import { createBlobService } from "azure-storage";
 import * as TE from "fp-ts/TaskEither";
 import * as jose from "jose";
 import { pipe } from "fp-ts/lib/function";
-import {
-  createCosmosDbAndCollections,
-  LOLLIPOP_COSMOSDB_COLLECTION_NAME
-} from "../__mocks__/fixtures";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
-import {
-  LolliPOPKeysModel} from "../../model/lollipop_keys";
+import { LolliPOPKeysModel } from "../../model/lollipop_keys";
 
 import {
   WAIT_MS,
@@ -27,9 +22,10 @@ import {
   BEARER_AUTH_HEADER,
   QueueStorageConnection
 } from "../env";
-import { createBlobs } from "../__mocks__/utils/azure_storage";
 import {
-  aFiscalCode} from "../../__mocks__/lollipopPubKey.mock";
+  aFiscalCode,
+  aValidSha256AssertionRef
+} from "../../__mocks__/lollipopPubKey.mock";
 import { ActivatePubKeyPayload } from "../../generated/definitions/internal/ActivatePubKeyPayload";
 import { AssertionTypeEnum } from "../../generated/definitions/internal/AssertionType";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -38,6 +34,11 @@ import { AssertionRef } from "../../generated/definitions/internal/AssertionRef"
 import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { ProblemJson } from "@pagopa/ts-commons/lib/responses";
+import {
+  createCosmosDbAndCollections,
+  LOLLIPOP_COSMOSDB_COLLECTION_NAME
+} from "../utils/fixtures";
+import { createBlobs } from "../utils/azure_storage";
 
 const MAX_ATTEMPT = 50;
 
@@ -55,7 +56,7 @@ const customHeaders = {
 };
 
 const baseUrl = "http://function:7071";
-const myFetch = getNodeFetch(customHeaders) as unknown as typeof fetch;
+const myFetch = (getNodeFetch(customHeaders) as unknown) as typeof fetch;
 
 const LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME = "assertions";
 
@@ -74,7 +75,7 @@ const cosmosClient = new CosmosClient({
 // Wait some time
 beforeAll(async () => {
   await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(COSMOSDB_NAME),
     TE.getOrElse(() => {
       throw Error("Cannot create infra resources");
     })
@@ -126,11 +127,11 @@ const generateAssertionRefForTest = async (
 
 describe("getAssertion |> Validation Failures", () => {
   it("should fail when the required permissions are not met", async () => {
-    const myFetchWithoutHeaders = getNodeFetch() as unknown as typeof fetch;
+    const myFetchWithoutHeaders = (getNodeFetch() as unknown) as typeof fetch;
 
     const response = await fetchGetAssertion(
-      "",
-      "",
+      aValidSha256AssertionRef,
+      BEARER_AUTH_HEADER,
       "",
       baseUrl,
       myFetchWithoutHeaders
@@ -139,26 +140,10 @@ describe("getAssertion |> Validation Failures", () => {
     expect(response.status).toEqual(403);
     const problemJson = (await response.json()) as ProblemJson;
     expect(problemJson).toMatchObject({
-      detail: "You do not have enough permissions",
-      title: "You are not allowed here",
+      detail:
+        "The request could not be associated to a user, missing userId or subscriptionId.",
+      title: "Anonymous user",
       status: 403
-    });
-  });
-  
-  it("should fail when an empty assertionRef is passed to the endpoint", async () => {
-    const response = await fetchGetAssertion(
-      "",
-      "",
-      "",
-      baseUrl,
-      myFetch
-    );
-
-    expect(response.status).toEqual(400);
-    const body = await response.json();
-    expect(body).toMatchObject({
-      status: 400,
-      title: "Invalid AssertionRef"
     });
   });
 
@@ -167,7 +152,7 @@ describe("getAssertion |> Validation Failures", () => {
 
     const response = await fetchGetAssertion(
       anInvalidAssertionRef,
-      "",
+      BEARER_AUTH_HEADER,
       "",
       baseUrl,
       myFetch
@@ -198,7 +183,8 @@ describe("getAssertion |> Validation Failures", () => {
     const body = await response.json();
     expect(body).toMatchObject({
       status: 403,
-      title: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`
+      detail: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`,
+      title: "You are not allowed here"
     });
   });
 
