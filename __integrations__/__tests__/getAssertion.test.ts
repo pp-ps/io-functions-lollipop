@@ -182,6 +182,28 @@ describe("getAssertion |> Validation Failures", () => {
     });
   });
 
+  it("should fail when no jwt is passed to the endpoint", async () => {
+    const anInvalidJwt = "";
+    const randomJwk = await generateJwkForTest();
+    const randomAssertionRef = await generateAssertionRefForTest(randomJwk);
+
+    const response = await fetchGetAssertion(
+      randomAssertionRef,
+      BEARER_AUTH_HEADER,
+      anInvalidJwt,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(403);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: 403,
+      detail: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`,
+      title: "You are not allowed here"
+    });
+  });
+
   it("should fail when an invalid jwt is passed to the endpoint", async () => {
     const anInvalidJwt = "anInvalidJwt";
     const randomJwk = await generateJwkForTest();
@@ -199,7 +221,7 @@ describe("getAssertion |> Validation Failures", () => {
     const body = await response.json();
     expect(body).toMatchObject({
       status: 403,
-      detail: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`,
+      detail: `Invalid or expired JWT`,
       title: "You are not allowed here"
     });
   });
