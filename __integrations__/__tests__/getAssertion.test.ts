@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable sort-keys */
 import { exit } from "process";
+import * as date_fns from "date-fns";
 
 import { CosmosClient } from "@azure/cosmos";
 import { createBlobService } from "azure-storage";
@@ -22,23 +23,34 @@ import {
   BEARER_AUTH_HEADER,
   QueueStorageConnection
 } from "../env";
-import {
-  aFiscalCode,
-  aValidSha256AssertionRef
-} from "../../__mocks__/lollipopPubKey.mock";
+
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
+import { ProblemJson } from "@pagopa/ts-commons/lib/responses";
+
 import { ActivatePubKeyPayload } from "../../generated/definitions/internal/ActivatePubKeyPayload";
 import { AssertionTypeEnum } from "../../generated/definitions/internal/AssertionType";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { fetchGetAssertion } from "../utils/client";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
-import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
-import { ProblemJson } from "@pagopa/ts-commons/lib/responses";
+import { LcParams } from "../../generated/definitions/internal/LcParams";
+
 import {
   createCosmosDbAndCollections,
   LOLLIPOP_COSMOSDB_COLLECTION_NAME
 } from "../utils/fixtures";
 import { createBlobs } from "../utils/azure_storage";
+import {
+  fetchActivatePubKey,
+  fetchGenerateLcParams,
+  fetchGetAssertion,
+  fetchReservePubKey
+} from "../utils/client";
+
+import {
+  aFiscalCode,
+  aValidSha256AssertionRef,
+  aValidSha512AssertionRef
+} from "../../__mocks__/lollipopPubKey.mock";
 
 const MAX_ATTEMPT = 50;
 
@@ -98,7 +110,11 @@ const cosmosInstance = cosmosClient.database(COSMOSDB_NAME);
 const container = cosmosInstance.container(LOLLIPOP_COSMOSDB_COLLECTION_NAME);
 const lolliPOPKeysModel = new LolliPOPKeysModel(container);
 
-const expires = new Date();
+const aGenerateLcParamsPayload = {
+  operation_id: "an_operation_id" as NonEmptyString
+};
+
+const expires = date_fns.addDays(new Date(), 30);
 
 const validActivatePubKeyPayload: ActivatePubKeyPayload = {
   assertion_type: AssertionTypeEnum.SAML,
@@ -188,26 +204,47 @@ describe("getAssertion |> Validation Failures", () => {
     });
   });
 
-  // it("should fail when the assertionRef in the endpoint does not match the one in the jwt", async () => {
-  //   const anInvalidJwt = "anInvalidJwt";
-  //   const randomJwk = await generateJwkForTest();
-  //   const randomAssertionRef = await generateAssertionRefForTest(randomJwk);
+  it("should fail when the assertionRef in the endpoint does not match the one in the jwt", async () => {
+    const lcParams = await setupTestAndGenerateLcParams();
 
-  //   const response = await fetchGetAssertion(
-  //     randomAssertionRef,
-  //     BEARER_AUTH_HEADER,
-  //     anInvalidJwt,
-  //     baseUrl,
-  //     myFetch
-  //   );
+    const anotherAssertionRef = aValidSha512AssertionRef;
 
-  //   expect(response.status).toEqual(403);
-  //   const body = await response.json();
-  //   expect(body).toMatchObject({
-  //     status: 403,
-  //     title: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`
-  //   });
-  // });
+    const response = await fetchGetAssertion(
+      anotherAssertionRef,
+      BEARER_AUTH_HEADER,
+      lcParams.lc_authentication_bearer,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(403);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: 403,
+      title: "You are not allowed here",
+      detail: `You do not have enough permission to complete the operation you requested`
+    });
+  });
+});
+
+describe("getAssertion |> Success", () => {
+  it("should succeed when all requirements are met", async () => {
+    const lcParams = await setupTestAndGenerateLcParams();
+
+    const response = await fetchGetAssertion(
+      lcParams.assertion_ref,
+      BEARER_AUTH_HEADER,
+      lcParams.lc_authentication_bearer,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      response_xml: validActivatePubKeyPayload.assertion
+    });
+  });
 });
 
 // -----------------------
@@ -237,3 +274,40 @@ const waitFunctionToSetup = async (): Promise<void> => {
     exit(1);
   }
 };
+
+async function setupTestAndGenerateLcParams() {
+  const randomJwk = await generateJwkForTest();
+
+  const reserveResult = await fetchReservePubKey(
+    {
+      pub_key: randomJwk,
+      algo: JwkPubKeyHashAlgorithmEnum.sha256
+    },
+    baseUrl,
+    myFetch
+  );
+
+  expect(reserveResult.status).toEqual(201);
+
+  const randomAssertionRef = (await reserveResult.json()).assertion_ref;
+
+  const responseActivate = await fetchActivatePubKey(
+    randomAssertionRef,
+    validActivatePubKeyPayload,
+    baseUrl,
+    (myFetch as unknown) as typeof fetch
+  );
+
+  expect(responseActivate.status).toEqual(200);
+
+  const resultGenerateLcParams = await fetchGenerateLcParams(
+    randomAssertionRef,
+    aGenerateLcParamsPayload,
+    baseUrl,
+    myFetch
+  );
+
+  expect(resultGenerateLcParams.status).toEqual(200);
+  const generateBody = (await resultGenerateLcParams.json()) as LcParams;
+  return generateBody;
+}

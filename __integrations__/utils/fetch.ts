@@ -13,7 +13,6 @@ export const getNodeFetch = (
     ...customHeaders,
     ...headers
   };
-  log("Sending request", input, headersToAdd);
 
   if (showLogs) {
     log("Sending request", input, headersToAdd);

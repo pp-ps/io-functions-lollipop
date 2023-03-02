@@ -63,6 +63,6 @@ export const fetchGetAssertion = (
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      [jwtHeaderName]: jwt
+      [jwtHeaderName]: `Bearer ${jwt}`
     }
   });

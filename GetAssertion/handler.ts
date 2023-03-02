@@ -1,7 +1,7 @@
 import * as express from "express";
 
 import * as TE from "fp-ts/lib/TaskEither";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 
 import {
   AzureApiAuthMiddleware,
@@ -80,9 +80,9 @@ export const GetAssertionHandler = (
       ar => ar === jwt.assertionRef,
       () => ResponseErrorForbiddenNotAuthorized
     ),
-    TE.chainW(ref =>
-      pipe(
-        popDocumentReader(ref),
+    TE.chainW(
+      flow(
+        popDocumentReader,
         TE.mapLeft(error => {
           // TODO after rebase
           const err = `Error while reading pop document: ${error.kind}`;
