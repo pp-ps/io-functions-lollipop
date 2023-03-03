@@ -22,6 +22,15 @@ import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 
 const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 0 as NonNegativeInteger;
 
+// Assertion Client Configuration (itself)
+export const FirstLcAssertionClientConfig = t.type({
+  FIRST_LC_ASSERTION_CLIENT_BASE_URL: NonEmptyString,
+  FIRST_LC_ASSERTION_CLIENT_SUBSCRIPTION_KEY: NonEmptyString
+});
+export type FirstLcAssertionClientConfig = t.TypeOf<
+  typeof FirstLcAssertionClientConfig
+>;
+
 // ----------------------------
 // JWT Configuration
 // ----------------------------
@@ -66,7 +75,8 @@ export const IConfig = t.intersection([
 
     isProduction: t.boolean
   }),
-  JWTConfig
+  JWTConfig,
+  FirstLcAssertionClientConfig
 ]);
 
 export const envConfig = {
