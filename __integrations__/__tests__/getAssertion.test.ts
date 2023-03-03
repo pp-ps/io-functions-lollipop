@@ -2,12 +2,13 @@
 /* eslint-disable sort-keys */
 import { exit } from "process";
 import * as date_fns from "date-fns";
+import * as jose from "jose";
 
 import { CosmosClient } from "@azure/cosmos";
-import { createBlobService } from "azure-storage";
+import { createBlobService, ServiceResponse } from "azure-storage";
 
+import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
-import * as jose from "jose";
 import { pipe } from "fp-ts/lib/function";
 
 import { getNodeFetch } from "../utils/fetch";
@@ -106,8 +107,9 @@ beforeEach(() => {
 });
 
 const cosmosInstance = cosmosClient.database(COSMOSDB_NAME);
-const container = cosmosInstance.container(LOLLIPOP_COSMOSDB_COLLECTION_NAME);
-const lolliPOPKeysModel = new LolliPOPKeysModel(container);
+const lolliPopContainer = cosmosInstance.container(
+  LOLLIPOP_COSMOSDB_COLLECTION_NAME
+);
 
 const aGenerateLcParamsPayload = {
   operation_id: "an_operation_id" as NonEmptyString
@@ -244,6 +246,61 @@ describe("getAssertion |> Validation Failures", () => {
       status: 403,
       title: "You are not allowed here",
       detail: `You do not have enough permission to complete the operation you requested`
+    });
+  });
+
+  it("should fail when the document cannot be found in Cosmos", async () => {
+    const lcParams = await setupTestAndGenerateLcParams();
+
+    // Recreate the DB to clean-up data
+    await pipe(
+      createCosmosDbAndCollections(COSMOSDB_NAME),
+      TE.getOrElse(() => {
+        throw Error("Cannot create infra resources");
+      })
+    )();
+
+    const response = await fetchGetAssertion(
+      lcParams.assertion_ref,
+      BEARER_AUTH_HEADER,
+      lcParams.lc_authentication_bearer,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(410);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      detail: "Resource gone"
+    });
+  });
+
+  it("should fail when the assertion cannot be found in Blob Storage", async () => {
+    const lcParams = await setupTestAndGenerateLcParams();
+
+    // Recreate the DB to clean-up data
+    const deleted = await TE.taskify<Error, ServiceResponse>(cb =>
+      blobService.deleteBlob(
+        LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME,
+        lcParams.assertion_file_name,
+        cb
+      )
+    )()();
+
+    expect(E.isRight(deleted)).toBeTruthy();
+
+    const response = await fetchGetAssertion(
+      lcParams.assertion_ref,
+      BEARER_AUTH_HEADER,
+      lcParams.lc_authentication_bearer,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(410);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      detail: "Resource gone"
     });
   });
 

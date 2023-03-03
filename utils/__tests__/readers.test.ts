@@ -37,13 +37,10 @@ const lollipopPubKeysModelMock = ({
   upsert: upsertMock
 } as unknown) as LolliPOPKeysModel;
 
-const getBlobAsTextWithErrorMock = jest.spyOn(
-  fn_commons,
-  "getBlobAsTextWithError"
-);
-getBlobAsTextWithErrorMock.mockImplementation(
-  (blobService, containerName) => assertionName =>
-    TE.right(O.fromNullable(anAssertionContent))
+const getBlobAsTextMock = jest.spyOn(fn_commons, "getBlobAsText");
+getBlobAsTextMock.mockImplementation(
+  async (blobService, containerName, assertionName) =>
+    E.right(O.fromNullable(anAssertionContent))
 );
 
 // --------------------------
@@ -105,8 +102,9 @@ describe("AssertionReader", () => {
   });
 
   it("should return an internal error when an error occurred retrieving the assertion from blob storage", async () => {
-    getBlobAsTextWithErrorMock.mockImplementationOnce(() => () =>
-      TE.left(({ message: "an Error" } as unknown) as StorageError)
+    getBlobAsTextMock.mockImplementationOnce(
+      async (blobService, containerName, assertionName) =>
+        E.left(({ message: "an Error" } as unknown) as StorageError)
     );
 
     const assertionReader = getAssertionReader(
@@ -124,8 +122,9 @@ describe("AssertionReader", () => {
   });
 
   it("should return an internal error when the assertion content is empty", async () => {
-    getBlobAsTextWithErrorMock.mockImplementationOnce(() => () =>
-      TE.right(O.fromNullable(""))
+    getBlobAsTextMock.mockImplementationOnce(
+      async (blobService, containerName, assertionName) =>
+        E.right(O.fromNullable(""))
     );
 
     const assertionReader = getAssertionReader(
@@ -143,8 +142,8 @@ describe("AssertionReader", () => {
   });
 
   it("should return a not found error when there no assertion was found in blob storage for a given assertion file name", async () => {
-    getBlobAsTextWithErrorMock.mockImplementationOnce(() => () =>
-      TE.right(O.none)
+    getBlobAsTextMock.mockImplementationOnce(
+      async (blobService, containerName, assertionName) => E.right(O.none)
     );
 
     const assertionReader = getAssertionReader(

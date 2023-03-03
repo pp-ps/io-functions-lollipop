@@ -1,10 +1,11 @@
 import { BlobService } from "azure-storage";
 import * as RTE from "fp-ts/ReaderTaskEither";
 import * as TE from "fp-ts/lib/TaskEither";
-import { pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/Either";
+import { identity, pipe } from "fp-ts/lib/function";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { getBlobAsTextWithError } from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
+import { getBlobAsText } from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
 
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import {
@@ -70,8 +71,12 @@ export const getAssertionReader = (
   assertionFileName: AssertionFileName
 ): ReturnType<AssertionReader> =>
   pipe(
-    assertionFileName,
-    getBlobAsTextWithError(blobService, assertionContainerName),
+    TE.tryCatch(
+      () =>
+        getBlobAsText(blobService, assertionContainerName, assertionFileName),
+      E.toError
+    ),
+    TE.chainEitherK(identity),
     TE.mapLeft(error =>
       toInternalError(
         `Unable to retrieve assertion ${assertionFileName} from blob storage: ${error.message}`

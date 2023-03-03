@@ -43,7 +43,7 @@ const domainErrorToResponseError = (
   error: DomainError
 ): IResponseErrorGone | IResponseErrorInternal =>
   error.kind === ErrorKind.NotFound
-    ? ResponseErrorGone("")
+    ? ResponseErrorGone("Resource gone")
     : ResponseErrorInternal(error.detail);
 
 /**
