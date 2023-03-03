@@ -43,7 +43,6 @@ const nodeFetch = (getNodeFetch() as unknown) as typeof fetch;
 // Setup dbs
 // ----------------
 
-// @ts-ignore
 const cosmosClient = new CosmosClient({
   endpoint: COSMOSDB_URI,
   key: COSMOSDB_KEY

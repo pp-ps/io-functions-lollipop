@@ -78,7 +78,6 @@ const LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME = "assertions";
 
 const blobService = createBlobService(QueueStorageConnection);
 
-// @ts-ignore
 const cosmosClient = new CosmosClient({
   endpoint: COSMOSDB_URI,
   key: COSMOSDB_KEY
@@ -248,7 +247,7 @@ describe("getAssertion |> Validation Failures", () => {
     });
   });
 
-  it("should fail when the jwt expired", async () => {
+  it("should fail when the jwt has expired", async () => {
     const lcParams = await setupTestAndGenerateLcParams();
 
     await delay(5500);

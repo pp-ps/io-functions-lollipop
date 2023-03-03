@@ -32,7 +32,16 @@ export type AssertionReader = RTE.ReaderTaskEither<
   NonEmptyString
 >;
 
-// IMPLEMENTATIONS
+// -------------------------
+// Readers implementations
+// -------------------------
+
+/**
+ * Return a PopDocumentReader that retrieves the value from Cosmos
+ *
+ * @param lollipopKeysModel the LolliPOPKeysModel model to use
+ * @returns The PopDocumentReader
+ */
 export const getPopDocumentReader = (
   lollipopKeysModel: LolliPOPKeysModel
 ): PopDocumentReader => (
@@ -47,7 +56,13 @@ export const getPopDocumentReader = (
     TE.chainW(TE.fromOption(() => ({ kind: ErrorKind.NotFound as const })))
   );
 
-// IMPLEMENTATIONS
+/**
+ * Return a AssertionReader that retrieves the value from a Blob Service
+ *
+ * @param blobService the azure blobService
+ * @param assertionContainerName the name of the container where the blob is stored
+ * @returns The AssertionReader
+ */
 export const getAssertionReader = (
   blobService: BlobService,
   assertionContainerName: NonEmptyString

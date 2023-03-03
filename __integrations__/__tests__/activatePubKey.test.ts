@@ -65,7 +65,6 @@ const LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME = "assertions";
 
 const blobService = createBlobService(QueueStorageConnection);
 
-// @ts-ignore
 const cosmosClient = new CosmosClient({
   endpoint: COSMOSDB_URI,
   key: COSMOSDB_KEY

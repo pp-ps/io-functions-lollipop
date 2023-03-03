@@ -85,7 +85,7 @@ export const GetAssertionHandler = (
           `jwt assertion_ref does not match the one in path`
         )
     ),
-    TE.chainW(
+    TE.chain(
       flow(
         popDocumentReader,
         TE.mapLeft(error =>
@@ -127,7 +127,7 @@ export const GetAssertionHandler = (
 /**
  * Wraps a GetAssertion handler inside an Express request handler.
  */
-// eslint-disable-next-line max-params, prefer-arrow/prefer-arrow-functions
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 export function GetAssertion(
   jwtConfig: JWTConfig,
   popDocumentReader: PopDocumentReader,
