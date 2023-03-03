@@ -21,7 +21,11 @@ paths:
           in: path
           schema: 
             $ref: "#/components/schemas/AssertionRef"
-        - $ref: "#/components/parameters/LollipopAuth"
+        - name: x-pagopa-lollipop-auth
+          required: true
+          in: header
+          schema:
+            $ref: "#/components/schemas/LollipopAuthBearer"
       responses:
         200:
           description: The assertion related to a valid assertion_ref
@@ -60,15 +64,6 @@ components:
       type: apiKey
       in: header
       name: Ocp-Apim-Subscription-Key
-  
-  parameters:
-    LollipopAuth:
-      name: x-pagopa-lollipop-auth
-      required: true
-      in: header
-      schema:
-        $ref: "#/components/schemas/LollipopAuthBearer"
-      example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 
   schemas:
     ProblemJson:
@@ -88,6 +83,7 @@ components:
       type: string
       pattern: "^Bearer [a-zA-Z0-9-_].+"
       description: A lollipop's JWT auth custom header as `Bearer <JWT Token>`
+      example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 
     SamlUserInfo:
       type: object
