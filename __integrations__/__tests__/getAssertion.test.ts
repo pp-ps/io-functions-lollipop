@@ -278,7 +278,7 @@ describe("getAssertion |> Validation Failures", () => {
   it("should fail when the assertion cannot be found in Blob Storage", async () => {
     const lcParams = await setupTestAndGenerateLcParams();
 
-    // Recreate the DB to clean-up data
+    // Delete Blob to let retrieve fail later in the flow
     const deleted = await TE.taskify<Error, ServiceResponse>(cb =>
       blobService.deleteBlob(
         LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME,
