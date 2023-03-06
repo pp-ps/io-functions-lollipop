@@ -54,7 +54,7 @@ type IGetAssertionHandler = (
   context: Context,
   auth: IAzureApiAuthorization,
   assertionRef: AssertionRef,
-  jwt: AuthJWT
+  authJwtPayload: AuthJWT
 ) => Promise<
   | IResponseSuccessJson<LCUserInfo>
   | IResponseErrorValidation
@@ -72,12 +72,12 @@ export const GetAssertionHandler = (
   context,
   _apiAuth,
   assertionRef,
-  jwt
+  authJwtPayload
 ): ReturnType<IGetAssertionHandler> =>
   pipe(
     assertionRef,
     TE.fromPredicate(
-      ar => ar === jwt.assertionRef,
+      ar => ar === authJwtPayload.assertionRef,
       () =>
         logAndReturnResponse(
           context,
@@ -85,7 +85,7 @@ export const GetAssertionHandler = (
           `jwt assertion_ref does not match the one in path`
         )
     ),
-    TE.chain(
+    TE.chainW(
       flow(
         publicKeyDocumentReader,
         TE.mapLeft(error =>
@@ -98,8 +98,8 @@ export const GetAssertionHandler = (
         TE.filterOrElseW(isNotPendingLollipopPubKey, () =>
           logAndReturnResponse(
             context,
-            ResponseErrorForbiddenNotAuthorized,
-            `Unexpected ${PubKeyStatusEnum.PENDING} status on pop document`
+            ResponseErrorInternal("Unexpected status on pubKey document"),
+            `Unexpected ${PubKeyStatusEnum.PENDING} status on pubKey document`
           )
         )
       )

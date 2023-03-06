@@ -117,7 +117,7 @@ describe("GetAssertionHandler - Failure", () => {
   test(`
   GIVEN a valid assertionRef and a valid jwt 
   WHEN the pub key is PENDING
-  THEN an IResponseErrorForbiddenNotAuthorized is returned
+  THEN an IResponseErrorInternal is returned
   `, async () => {
     const handler = GetAssertionHandler(
       publicKeyDocumentReaderMock,
@@ -137,7 +137,8 @@ describe("GetAssertionHandler - Failure", () => {
     expect(assertionReaderMock).not.toHaveBeenCalled();
 
     expect(res).toMatchObject({
-      kind: "IResponseErrorForbiddenNotAuthorized"
+      kind: "IResponseErrorInternal",
+      detail: "Internal server error: Unexpected status on pubKey document"
     });
   });
 
