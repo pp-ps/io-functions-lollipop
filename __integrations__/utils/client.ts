@@ -52,7 +52,7 @@ export const GET_ASSERTION_BASE_PATH = "api/v1/assertions";
 export const fetchGetAssertion = (
   assertionRef: string,
   jwtHeaderName: string,
-  jwt: string,
+  jwt: string | undefined,
   baseUrl: string,
   nodeFetch: typeof fetch
 ) =>
@@ -61,6 +61,6 @@ export const fetchGetAssertion = (
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      [jwtHeaderName]: `Bearer ${jwt}`
+      ...(jwt !== undefined ? { [jwtHeaderName]: `Bearer ${jwt}` } : {})
     }
   });

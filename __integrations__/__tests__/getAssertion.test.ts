@@ -1,5 +1,6 @@
 import { exit } from "process";
 import * as date_fns from "date-fns";
+import * as jwt from "jsonwebtoken";
 
 import { CosmosClient } from "@azure/cosmos";
 import { createBlobService, ServiceResponse } from "azure-storage";
@@ -13,12 +14,14 @@ import { log } from "../utils/logger";
 
 import {
   WAIT_MS,
+  ISSUER,
   SHOW_LOGS,
   COSMOSDB_URI,
   COSMOSDB_KEY,
   COSMOSDB_NAME,
   BEARER_AUTH_HEADER,
-  QueueStorageConnection
+  QueueStorageConnection,
+  A_WRONG_PRIVATE_KEY
 } from "../env";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -47,6 +50,7 @@ import {
   aValidSha512AssertionRef
 } from "../../__mocks__/lollipopPubKey.mock";
 import { generateAssertionRefForTest, generateJwkForTest } from "../utils/jwk";
+import { ulid } from "ulid";
 
 const MAX_ATTEMPT = 50;
 
@@ -164,7 +168,28 @@ describe("getAssertion |> Validation Failures", () => {
     });
   });
 
-  it("should fail when no jwt is passed to the endpoint", async () => {
+  it("should fail when the jwt is not passed to the endpoint", async () => {
+    const randomJwk = await generateJwkForTest();
+    const randomAssertionRef = await generateAssertionRefForTest(randomJwk);
+
+    const response = await fetchGetAssertion(
+      randomAssertionRef,
+      BEARER_AUTH_HEADER,
+      undefined,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(403);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: 403,
+      detail: `Invalid or missing JWT in header ${BEARER_AUTH_HEADER}`,
+      title: "You are not allowed here"
+    });
+  });
+
+  it("should fail when an empty jwt is passed to the endpoint", async () => {
     const anInvalidJwt = "";
     const randomJwk = await generateJwkForTest();
     const randomAssertionRef = await generateAssertionRefForTest(randomJwk);
@@ -195,6 +220,49 @@ describe("getAssertion |> Validation Failures", () => {
       randomAssertionRef,
       BEARER_AUTH_HEADER,
       anInvalidJwt,
+      baseUrl,
+      myFetch
+    );
+
+    expect(response.status).toEqual(403);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: 403,
+      detail: `Invalid or expired JWT`,
+      title: "You are not allowed here"
+    });
+  });
+
+  it("should fail when an valid jwt signed with a wrong private key is passed to the endpoint", async () => {
+    const randomJwk = await generateJwkForTest();
+    const randomAssertionRef = await generateAssertionRefForTest(randomJwk);
+
+    const jwtWithWrongKey = await pipe(
+      TE.taskify<Error, string>(cb =>
+        jwt.sign(
+          {
+            operation_id: aGenerateLcParamsPayload.operation_id,
+            assertion_ref: randomAssertionRef
+          },
+          A_WRONG_PRIVATE_KEY,
+          {
+            algorithm: "RS256",
+            expiresIn: `900 seconds`,
+            issuer: ISSUER,
+            jwtid: ulid()
+          },
+          cb
+        )
+      )(),
+      TE.getOrElse(() => {
+        throw new Error("Unable to create jwt");
+      })
+    )();
+
+    const response = await fetchGetAssertion(
+      randomAssertionRef,
+      BEARER_AUTH_HEADER,
+      jwtWithWrongKey,
       baseUrl,
       myFetch
     );

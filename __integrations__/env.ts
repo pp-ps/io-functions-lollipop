@@ -12,4 +12,5 @@ export const LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING =
   process.env.LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING ?? "";
 
 export const BEARER_AUTH_HEADER = process.env.BEARER_AUTH_HEADER ?? "";
-
+export const A_WRONG_PRIVATE_KEY = process.env.A_WRONG_PRIVATE_KEY ?? "";
+export const ISSUER = process.env.ISSUER ?? "";
