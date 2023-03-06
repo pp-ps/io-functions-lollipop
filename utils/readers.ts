@@ -50,10 +50,12 @@ export const getPublicKeyDocumentReader = (
 ): ReturnType<PublicKeyDocumentReader> =>
   pipe(
     lollipopKeysModel.findLastVersionByModelId([assertionRef]),
-    TE.mapLeft(error => ({
-      detail: cosmosErrorsToString(error),
-      kind: ErrorKind.Internal as const
-    })),
+    TE.mapLeft(error =>
+      toInternalError(
+        cosmosErrorsToString(error),
+        "Error retrieving pubKey document"
+      )
+    ),
     TE.chainW(TE.fromOption(() => ({ kind: ErrorKind.NotFound as const })))
   );
 
@@ -79,11 +81,12 @@ export const getAssertionReader = (
     TE.chainEitherK(identity),
     TE.mapLeft(error =>
       toInternalError(
-        `Unable to retrieve assertion ${assertionFileName} from blob storage: ${error.message}`
+        `Unable to retrieve assertion from blob storage: ${error.message}`,
+        `Unable to retrieve assertion`
       )
     ),
     TE.chainW(TE.fromOption(() => toNotFoundError())),
     TE.filterOrElseW(NonEmptyString.is, () =>
-      toInternalError(`Assertion ${assertionFileName} is empty`)
+      toInternalError(`Assertion is empty`)
     )
   );

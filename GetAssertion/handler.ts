@@ -92,7 +92,11 @@ export const GetAssertionHandler = (
           logAndReturnResponse(
             context,
             domainErrorToResponseError(error),
-            `Error while reading pop document: ${error.kind}`
+            `Error while reading pop document: ${
+              error.kind === ErrorKind.Internal
+                ? ` ${error.message}`
+                : error.kind
+            }`
           )
         ),
         TE.filterOrElseW(isNotPendingLollipopPubKey, () =>
@@ -111,9 +115,14 @@ export const GetAssertionHandler = (
           logAndReturnResponse(
             context,
             domainErrorToResponseError(error),
-            `Error while reading assertion from blob storage: ${error.kind}`
+            `Error while reading assertion from blob storage: ${
+              error.kind === ErrorKind.Internal
+                ? `${error.message}`
+                : error.kind
+            }`
           )
         ),
+        // TODO: add OIDC assertion type management
         TE.map(assertion =>
           ResponseSuccessJson({
             response_xml: assertion

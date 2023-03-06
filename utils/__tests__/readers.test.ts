@@ -88,7 +88,8 @@ describe("PublicKeyDocumentReader", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: 'Generic error: {"message":"an Error"}'
+        detail: "Error retrieving pubKey document",
+        message: 'Generic error: {"message":"an Error"}'
       })
     );
   });
@@ -122,7 +123,8 @@ describe("AssertionReader", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: `Unable to retrieve assertion ${anAssertionFileName} from blob storage: an Error`
+        detail: "Unable to retrieve assertion",
+        message: `Unable to retrieve assertion from blob storage: an Error`
       })
     );
   });
@@ -142,7 +144,8 @@ describe("AssertionReader", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: `Assertion ${anAssertionFileName} is empty`
+        detail: `Assertion is empty`,
+        message: "Assertion is empty"
       })
     );
   });

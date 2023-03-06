@@ -104,7 +104,8 @@ describe("PopDocumentWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: 'Generic error: {"message":"an Error"}'
+        detail: "Error creating pubKey document",
+        message: 'Generic error: {"message":"an Error"}'
       })
     );
   });
@@ -146,7 +147,8 @@ describe("AssertionWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: "an Error"
+        detail: "Error saving assertion file on blob storage",
+        message: "an Error"
       })
     );
   });
@@ -164,7 +166,8 @@ describe("AssertionWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: "another Error"
+        detail: "Error saving assertion file on blob storage",
+        message: "another Error"
       })
     );
   });
@@ -180,7 +183,8 @@ describe("AssertionWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: "Can not upload blob to storage"
+        detail: "Can not upload blob to storage",
+        message: "Can not upload blob to storage"
       })
     );
   });
@@ -198,7 +202,8 @@ describe("AssertionWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: `Assertion ${aRetrievedValidLollipopPubKeySha256.assertionFileName} already exists`
+        detail: `Assertion already exists`,
+        message: `Assertion already exists`
       })
     );
   });
@@ -216,7 +221,8 @@ describe("AssertionWriter", () => {
     expect(result).toEqual(
       E.left({
         kind: "Internal",
-        detail: `an Error`
+        detail: `Error checking assertion file existance`,
+        message: `an Error`
       })
     );
   });

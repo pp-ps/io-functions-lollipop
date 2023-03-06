@@ -10,12 +10,7 @@ import {
   RetrievedLolliPopPubKeys
 } from "../model/lollipop_keys";
 import { AssertionFileName } from "../generated/definitions/internal/AssertionFileName";
-import {
-  cosmosErrorsToString,
-  ErrorKind,
-  InternalError,
-  toInternalError
-} from "./errors";
+import { cosmosErrorsToString, InternalError, toInternalError } from "./errors";
 
 export type PopDocumentWriter = (
   item: NewLolliPopPubKeys
@@ -32,10 +27,12 @@ export const getPopDocumentWriter = (
 ): PopDocumentWriter => (item): ReturnType<PopDocumentWriter> =>
   pipe(
     lollipopKeysModel.upsert(item),
-    TE.mapLeft(error => ({
-      detail: cosmosErrorsToString(error),
-      kind: ErrorKind.Internal as const
-    }))
+    TE.mapLeft(error =>
+      toInternalError(
+        cosmosErrorsToString(error),
+        "Error creating pubKey document"
+      )
+    )
   );
 
 export const getAssertionWriter = (
@@ -53,11 +50,13 @@ export const getAssertionWriter = (
         cb
       )
     )(),
-    TE.mapLeft(error => toInternalError(error.message)),
+    TE.mapLeft(error =>
+      toInternalError(error.message, "Error checking assertion file existance")
+    ),
     TE.map(blobResult => blobResult.exists ?? false),
     TE.filterOrElse(
       fileEsists => !fileEsists,
-      () => toInternalError(`Assertion ${assertionFileName} already exists`)
+      () => toInternalError(`Assertion already exists`)
     ),
     TE.chainW(() =>
       pipe(
@@ -72,7 +71,12 @@ export const getAssertionWriter = (
           E.toError
         ),
         TE.chainW(TE.fromEither),
-        TE.mapLeft((error: Error) => toInternalError(error.message)),
+        TE.mapLeft((error: Error) =>
+          toInternalError(
+            error.message,
+            "Error saving assertion file on blob storage"
+          )
+        ),
         TE.chainW(
           TE.fromOption(() => toInternalError("Can not upload blob to storage"))
         )

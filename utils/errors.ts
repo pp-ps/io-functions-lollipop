@@ -79,6 +79,7 @@ export enum ErrorKind {
 export interface InternalError {
   readonly kind: ErrorKind.Internal;
   readonly detail: string;
+  readonly message: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -88,9 +89,13 @@ export interface NotFoundError {
 
 export type DomainError = InternalError | NotFoundError;
 
-export const toInternalError = (errorDetail: string): InternalError => ({
-  detail: errorDetail,
-  kind: ErrorKind.Internal as const
+export const toInternalError = (
+  errorMessage: string,
+  responseDetail?: string
+): InternalError => ({
+  detail: responseDetail ?? errorMessage,
+  kind: ErrorKind.Internal as const,
+  message: errorMessage
 });
 
 export const toNotFoundError = (): NotFoundError => ({

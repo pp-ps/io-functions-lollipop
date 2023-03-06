@@ -148,7 +148,11 @@ describe("GetAssertionHandler - Failure", () => {
   THEN an IResponseErrorForbiddenNotAuthorized is returned
   `, async () => {
     publicKeyDocumentReaderMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "an Error" })
+      TE.left({
+        kind: ErrorKind.Internal,
+        detail: "an Error",
+        message: "another Error"
+      })
     );
 
     const handler = GetAssertionHandler(
@@ -167,6 +171,10 @@ describe("GetAssertionHandler - Failure", () => {
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).not.toHaveBeenCalled();
+
+    expect(contextMock.log.error).toHaveBeenCalledWith(
+      "Internal server error: an Error | Error while reading pop document:  another Error"
+    );
 
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
@@ -222,7 +230,11 @@ describe("GetAssertionHandler - Failure", () => {
     );
 
     assertionReaderMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "an Error" })
+      TE.left({
+        kind: ErrorKind.Internal,
+        detail: "an Error",
+        message: "another Error"
+      })
     );
 
     const handler = GetAssertionHandler(
@@ -243,6 +255,11 @@ describe("GetAssertionHandler - Failure", () => {
     expect(assertionReaderMock).toHaveBeenCalledWith(
       aRetrievedValidLollipopPubKeySha256.assertionFileName
     );
+
+    expect(contextMock.log.error).toHaveBeenCalledWith(
+      "Internal server error: an Error | Error while reading assertion from blob storage: another Error"
+    );
+
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
       detail: "Internal server error: an Error"
