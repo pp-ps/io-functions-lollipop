@@ -3,7 +3,6 @@ import { exit } from "process";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
-import * as jose from "jose";
 import { pipe } from "fp-ts/lib/function";
 
 import {
@@ -40,13 +39,12 @@ import { ActivatePubKeyPayload } from "../../generated/definitions/internal/Acti
 import { AssertionTypeEnum } from "../../generated/definitions/internal/AssertionType";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { fetchActivatePubKey, fetchReservePubKey } from "../utils/client";
-import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
-import { JwkPublicKey } from "@pagopa/ts-commons/lib/jwk";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
 import { MASTER_HASH_ALGO } from "../../utils/lollipopKeys";
 import { createBlobService } from "azure-storage";
 import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
 import { CosmosClient } from "@azure/cosmos";
+import { generateAssertionRefForTest, generateJwkForTest } from "../utils/jwk";
 
 const MAX_ATTEMPT = 50;
 
@@ -101,20 +99,6 @@ const validActivatePubKeyPayload: ActivatePubKeyPayload = {
   assertion: "aValidAssertion" as NonEmptyString,
   expired_at: expires,
   fiscal_code: aFiscalCode
-};
-
-// this method generates new JWK for use in the describe below
-const generateJwkForTest = async (): Promise<JwkPublicKey> => {
-  const keyPair = await jose.generateKeyPair("ES256");
-  return (await jose.exportJWK(keyPair.publicKey)) as JwkPublicKey;
-};
-
-const generateAssertionRefForTest = async (
-  jwk: JwkPublicKey,
-  algo: JwkPubKeyHashAlgorithmEnum = JwkPubKeyHashAlgorithmEnum.sha256
-): Promise<AssertionRef> => {
-  const thumbprint = await jose.calculateJwkThumbprint(jwk, algo);
-  return `${algo}-${thumbprint}` as AssertionRef;
 };
 
 // -------------------------
