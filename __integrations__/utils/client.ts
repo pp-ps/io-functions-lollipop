@@ -1,5 +1,3 @@
-import { getNodeFetch } from "./fetch";
-
 export const ACTIVATE_PUB_KEY_PATH = "api/v1/pubkeys";
 export const fetchActivatePubKey = (
   assertionRef: string,
@@ -49,3 +47,20 @@ export const fetchGenerateLcParams = (
       body: JSON.stringify(body)
     }
   );
+
+export const GET_ASSERTION_BASE_PATH = "api/v1/assertions";
+export const fetchGetAssertion = (
+  assertionRef: string,
+  jwtHeaderName: string,
+  jwt: string | undefined,
+  baseUrl: string,
+  nodeFetch: typeof fetch
+) =>
+  nodeFetch(`${baseUrl}/${GET_ASSERTION_BASE_PATH}/${assertionRef}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(jwt !== undefined ? { [jwtHeaderName]: `Bearer ${jwt}` } : {})
+    }
+  });

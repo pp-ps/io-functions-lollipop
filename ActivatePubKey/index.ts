@@ -10,7 +10,7 @@ import {
 } from "../model/lollipop_keys";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
-import { getPopDocumentReader } from "../utils/readers";
+import { getPublicKeyDocumentReader } from "../utils/readers";
 import { getAssertionWriter, getPopDocumentWriter } from "../utils/writers";
 import { ActivatePubKey } from "./handler";
 
@@ -32,7 +32,7 @@ const assertionBlobService = createBlobService(
 app.put(
   "/api/v1/pubKeys/:assertion_ref",
   ActivatePubKey(
-    getPopDocumentReader(lollipopKeysModel),
+    getPublicKeyDocumentReader(lollipopKeysModel),
     getPopDocumentWriter(lollipopKeysModel),
     getAssertionWriter(
       assertionBlobService,

@@ -35,7 +35,7 @@ import {
   isValidLollipopPubKey,
   retrievedLollipopKeysToApiLcParams
 } from "../utils/lollipopKeys";
-import { PopDocumentReader } from "../utils/readers";
+import { PublicKeyDocumentReader } from "../utils/readers";
 import {
   domainErrorToResponseError,
   logAndReturnResponse
@@ -60,7 +60,7 @@ type IGenerateLCParamsHandler = (
  * Handles requests for generating Lollipop Consumer required params.
  */
 export const GenerateLCParamsHandler = (
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   expireGracePeriodInDays: NonNegativeInteger,
   authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): IGenerateLCParamsHandler => async (
@@ -69,7 +69,7 @@ export const GenerateLCParamsHandler = (
   payload
 ): ReturnType<IGenerateLCParamsHandler> =>
   pipe(
-    popDocumentReader(assertionRef),
+    publicKeyDocumentReader(assertionRef),
     TE.mapLeft(domainErrorToResponseError),
     TE.filterOrElseW(isValidLollipopPubKey, doc =>
       logAndReturnResponse(
@@ -117,14 +117,14 @@ export const GenerateLCParamsHandler = (
 /**
  * Wraps a GenerateLCParamsHandler handler inside an Express request handler.
  */
-// eslint-disable-next-line max-params, prefer-arrow/prefer-arrow-functions
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 export function GenerateLCParams(
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   expireGracePeriodInDays: NonNegativeInteger,
   authJwtGenerator: ReturnType<typeof getGenerateAuthJWT>
 ): express.RequestHandler {
   const handler = GenerateLCParamsHandler(
-    popDocumentReader,
+    publicKeyDocumentReader,
     expireGracePeriodInDays,
     authJwtGenerator
   );

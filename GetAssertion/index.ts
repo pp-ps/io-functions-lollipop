@@ -13,6 +13,10 @@ import {
   LOLLIPOPKEYS_COLLECTION_NAME
 } from "../model/lollipop_keys";
 import { getConfigOrThrow } from "../utils/config";
+import {
+  getAssertionReader,
+  getPublicKeyDocumentReader
+} from "../utils/readers";
 import { GetAssertion } from "./handler";
 
 const lollipopKeysModel = new LolliPOPKeysModel(
@@ -31,7 +35,14 @@ secureExpressApp(app);
 
 app.get(
   "/api/v1/assertions/:assertion_ref",
-  GetAssertion(lollipopKeysModel, assertionBlobService)
+  GetAssertion(
+    config,
+    getPublicKeyDocumentReader(lollipopKeysModel),
+    getAssertionReader(
+      assertionBlobService,
+      config.LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME
+    )
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);
