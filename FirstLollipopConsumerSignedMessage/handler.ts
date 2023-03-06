@@ -9,16 +9,44 @@ import {
   IResponseSuccessJson,
   ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
+import * as TE from "fp-ts/TaskEither";
+import {
+  JwkPublicKey,
+  JwkPublicKeyFromToken
+} from "@pagopa/ts-commons/lib/jwk";
+import { constTrue, flow, pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/Either";
+import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
+import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { SignedMessagePayload } from "../generated/definitions/lollipop-first-consumer/SignedMessagePayload";
 import { SignedMessageResponse } from "../generated/definitions/lollipop-first-consumer/SignedMessageResponse";
-import { createClient as externalClient } from "../generated/definitions/external/client";
+import { Client } from "../generated/definitions/external/client";
 import {
   LollipopHeaders,
+  RequiredHeaderMiddleware,
   RequiredHeadersMiddleware
 } from "../utils/middleware/required_header";
 import { HttpMessageSignatureMiddleware } from "../utils/middleware/http_message_signature_middleware";
+import { JwkPubKey } from "../generated/definitions/internal/JwkPubKey";
+import { LollipopAuthBearer } from "../generated/definitions/external/LollipopAuthBearer";
+import {
+  AssertionType,
+  AssertionTypeEnum
+} from "../generated/definitions/internal/AssertionType";
+import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
+import { SamlUserInfo } from "../generated/definitions/external/SamlUserInfo";
+import {
+  getFiscalNumberFromSamlResponse,
+  getRequestIDFromSamlResponse
+} from "../utils/saml";
+import {
+  calculateAssertionRef,
+  getAlgoFromAssertionRef
+} from "../utils/lollipopKeys";
+import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 
 type ISignedMessageHandler = (
+  pubKey: JwkPublicKey,
   lollipopHeaders: LollipopHeaders,
   inputPubkeys: SignedMessagePayload
 ) => Promise<
@@ -27,27 +55,165 @@ type ISignedMessageHandler = (
   | IResponseErrorInternal
 >;
 
+interface VerifierInput {
+  readonly assertionXml: string;
+  readonly assertionDoc: Document;
+}
+
+type Verifier = (
+  assertion: VerifierInput
+) => TE.TaskEither<IResponseErrorInternal, true>;
+
+type AssertionClient = Client<"ApiKeyAuth">;
+
+export const getAssertionRefVsRensponseToVerifier = (
+  pubKey: JwkPubKey,
+  assertionRefFromHeader: AssertionRef
+): Verifier => ({ assertionDoc }): ReturnType<Verifier> =>
+  pipe(
+    // new DOMParser().parseFromString(assertionXml, "text/xml"),
+    assertionDoc,
+    getRequestIDFromSamlResponse,
+    TE.fromOption(() =>
+      ResponseErrorInternal(
+        "Missing request id in the retrieved saml assertion."
+      )
+    ),
+    TE.filterOrElse(AssertionRef.is, () =>
+      ResponseErrorInternal(
+        "InResponseTo in the assertion do not contains a valid Assertion Ref."
+      )
+    ),
+    TE.bindTo("requestId"),
+    TE.bind("algo", ({ requestId }) =>
+      TE.of(getAlgoFromAssertionRef(requestId))
+    ),
+    TE.chain(({ requestId, algo }) =>
+      pipe(
+        pubKey,
+        calculateAssertionRef(algo),
+        TE.mapLeft(e =>
+          ResponseErrorInternal(
+            `Error calculating the hash of the provided public key: ${e.message}`
+          )
+        ),
+        TE.filterOrElse(
+          calcAssertionRef =>
+            calcAssertionRef === requestId &&
+            assertionRefFromHeader === requestId,
+          calcAssertionRef =>
+            ResponseErrorInternal(
+              `The hash of provided public key do not match the InReponseTo in the assertion: fromSaml=${requestId},fromPublicKey=${calcAssertionRef},fromHeader=${assertionRefFromHeader}`
+            )
+        )
+      )
+    ),
+    TE.map(() => true as const)
+  );
+
+export const getAssertionUserIdVsCfVerifier = (
+  fiscalCodeFromHeader: FiscalCode
+): Verifier => ({ assertionDoc }): ReturnType<Verifier> =>
+  pipe(
+    assertionDoc,
+    getFiscalNumberFromSamlResponse,
+    TE.fromOption(() =>
+      ResponseErrorInternal(
+        "Missing or invalid Fiscal Code in the retrieved saml assertion."
+      )
+    ),
+    TE.filterOrElse(
+      fiscalCodeFromAssertion =>
+        fiscalCodeFromAssertion === fiscalCodeFromHeader,
+      fiscalCodeFromAssertion =>
+        ResponseErrorInternal(
+          `The provided user id do not match the fiscalNumber in the assertion: fromSaml=${fiscalCodeFromAssertion},fromHeader=${fiscalCodeFromHeader}`
+        )
+    ),
+    TE.map(() => true as const)
+  );
+
+export const getAssertionSignatureVerifier = (): Verifier => ({
+  assertionXml,
+  assertionDoc
+}): ReturnType<Verifier> => TE.left(ResponseErrorInternal("Not Implemented"));
+
+export const isAssertionSaml = (type: AssertionType) => (
+  assertion: LCUserInfo
+): assertion is SamlUserInfo => type === AssertionTypeEnum.SAML;
+
 export const signedMessageHandler = (
-  _assertionClient: ReturnType<typeof externalClient>
+  assertionClient: AssertionClient
 ): ISignedMessageHandler => async (
-  _lollipopHeaders: LollipopHeaders,
+  _pubKey,
+  lollipopHeaders,
   _inputSignedMessage
-): ReturnType<ISignedMessageHandler> =>
-  ResponseErrorInternal("Not Implemented");
+): ReturnType<ISignedMessageHandler> => {
+  const aaa = pipe(
+    TE.tryCatch(
+      () =>
+        assertionClient.getAssertion({
+          assertion_ref: lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
+          ["x-pagopa-lollipop-auth"]: `Bearer ${lollipopHeaders["x-pagopa-lollipop-auth-jwt"]}` as LollipopAuthBearer
+        }),
+      flow(E.toError, e =>
+        ResponseErrorInternal(`Error retrieving assertion: ${e.message}`)
+      )
+    ),
+    TE.chainEitherK(
+      E.mapLeft(
+        flow(readableReportSimplified, readableError =>
+          ResponseErrorInternal(
+            `Error decoding retrieved assertion: ${readableError}`
+          )
+        )
+      )
+    ),
+    TE.chain(response =>
+      response.status === 200
+        ? TE.right(response.value)
+        : TE.left(
+            ResponseErrorInternal(
+              `Retrieving Assertion returned error ${response.status}: ${response.value?.title},${response.value?.detail}`
+            )
+          )
+    ),
+    TE.filterOrElse(
+      isAssertionSaml(lollipopHeaders["x-pagopa-lollipop-assertion-type"]),
+      () => ResponseErrorInternal("OIDC Claims not supported yet.")
+    ),
+    TE.map(assertion => assertion.response_xml),
+    TE.bindTo("assertionXml"),
+    TE.bind("assertionDoc", ({ assertionXml }) =>
+      TE.tryCatch(
+        async () => new DOMParser().parseFromString(assertionXml, "text/xml"),
+        () => ResponseErrorInternal("Error parsing retrieved saml response")
+      )
+    )
+  );
+  // check assertion ref -> hash public key
+  // check user id -> CF
+  // check assertion sign
+  return ResponseErrorInternal("Not Implemented");
+};
 
 export const getSignedMessageHandler = (
-  assertionClient: ReturnType<typeof externalClient>
+  assertionClient: AssertionClient
 ): express.RequestHandler => {
   const handler = signedMessageHandler(assertionClient);
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
+    RequiredHeaderMiddleware(
+      "x-pagopa-lollipop-public-key",
+      JwkPublicKeyFromToken
+    ),
     RequiredHeadersMiddleware(LollipopHeaders),
     RequiredBodyPayloadMiddleware(SignedMessagePayload),
     HttpMessageSignatureMiddleware()
   );
   return wrapRequestHandler(
-    middlewaresWrap((_, lollipopHeaders, inputSignedMessage, __) =>
-      handler(lollipopHeaders, inputSignedMessage)
+    middlewaresWrap((_, pubKey, lollipopHeaders, inputSignedMessage, __) =>
+      handler(pubKey, lollipopHeaders, inputSignedMessage)
     )
   );
 };
