@@ -312,7 +312,11 @@ describe("ActivatePubKey - Errors", () => {
 
   it("should return 500 Internal Error when an error occurred reading document", async () => {
     publicKeyDocumentReaderMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "an Error" })
+      TE.left({
+        kind: ErrorKind.Internal,
+        detail: "an Error",
+        message: "a detail Error"
+      })
     );
 
     const handler = ActivatePubKeyHandler(
@@ -342,7 +346,11 @@ describe("ActivatePubKey - Errors", () => {
 
   it("should return 500 Internal Error when an error occurred writing assertion into storage", async () => {
     assertionWriterMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "an Error on storage" })
+      TE.left({
+        kind: ErrorKind.Internal,
+        detail: "an Error on storage",
+        message: "a detail Error on storage"
+      })
     );
 
     const handler = ActivatePubKeyHandler(
@@ -378,7 +386,11 @@ describe("ActivatePubKey - Errors", () => {
 
   it("should return 500 Internal Error when an error occurred storing master key", async () => {
     popDocumentWriterMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "an Error on cosmos update" })
+      TE.left({
+        kind: ErrorKind.Internal,
+        detail: "an Error on cosmos update",
+        message: "a detail Error on cosmos update"
+      })
     );
 
     const handler = ActivatePubKeyHandler(
@@ -428,7 +440,8 @@ describe("ActivatePubKey - Errors", () => {
       .mockImplementationOnce(() =>
         TE.left({
           kind: ErrorKind.Internal,
-          detail: "an Error on cosmos update"
+          detail: "an Error on cosmos update",
+          message: "a detail Error on cosmos update"
         })
       );
 

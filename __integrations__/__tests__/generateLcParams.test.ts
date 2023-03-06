@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable sort-keys */
 import { exit } from "process";
 
 import * as TE from "fp-ts/TaskEither";

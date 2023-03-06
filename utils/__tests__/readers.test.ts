@@ -1,10 +1,11 @@
 import { ErrorResponse } from "@azure/cosmos";
-import { BlobService, StorageError } from "azure-storage";
+import { StorageError } from "azure-storage";
 
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as fn_commons from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
 
 import { LolliPOPKeysModel } from "../../model/lollipop_keys";
@@ -16,9 +17,7 @@ import {
 } from "../../__mocks__/lollipopPubKey.mock";
 import { anAssertionFileName } from "../../__mocks__/lollipopkeysMock";
 import { blobServiceMock } from "../../__mocks__/blobService.mock";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-
-const anAssertionContent = "an Assertion";
+import { anAssertionContent } from "../../__mocks__/readers.mock";
 
 // --------------------------
 // Mocks
@@ -40,7 +39,7 @@ const lollipopPubKeysModelMock = ({
 const getBlobAsTextMock = jest.spyOn(fn_commons, "getBlobAsText");
 getBlobAsTextMock.mockImplementation(
   async (blobService, containerName, assertionName) =>
-    E.right(O.fromNullable(anAssertionContent))
+    E.right(O.some(anAssertionContent))
 );
 
 // --------------------------
@@ -105,6 +104,12 @@ describe("AssertionReader", () => {
     );
 
     const result = await assertionReader(anAssertionFileName)();
+
+    expect(getBlobAsTextMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      "aContainerName",
+      anAssertionFileName
+    );
     expect(result).toEqual(E.right(anAssertionContent));
   });
 
@@ -131,8 +136,7 @@ describe("AssertionReader", () => {
 
   it("should return an internal error when the assertion content is empty", async () => {
     getBlobAsTextMock.mockImplementationOnce(
-      async (blobService, containerName, assertionName) =>
-        E.right(O.fromNullable(""))
+      async (blobService, containerName, assertionName) => E.right(O.some(""))
     );
 
     const assertionReader = getAssertionReader(

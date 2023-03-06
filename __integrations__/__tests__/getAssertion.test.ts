@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable sort-keys */
 import { exit } from "process";
 import * as date_fns from "date-fns";
 import * as jose from "jose";
@@ -13,7 +11,6 @@ import { pipe } from "fp-ts/lib/function";
 
 import { getNodeFetch } from "../utils/fetch";
 import { log } from "../utils/logger";
-import { LolliPOPKeysModel } from "../../model/lollipop_keys";
 
 import {
   WAIT_MS,
