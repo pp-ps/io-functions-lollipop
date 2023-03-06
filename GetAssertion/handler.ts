@@ -33,7 +33,7 @@ import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
 
-import { AssertionReader, PopDocumentReader } from "../utils/readers";
+import { AssertionReader, PublicKeyDocumentReader } from "../utils/readers";
 import { AuthJWT, verifyJWTMiddleware } from "../utils/auth_jwt";
 import { isNotPendingLollipopPubKey } from "../utils/lollipopKeys";
 import { DomainError, ErrorKind, logAndReturnResponse } from "../utils/errors";
@@ -66,7 +66,7 @@ type IGetAssertionHandler = (
  * Handles requests for retrieve a SPID/OIDC Assertion.
  */
 export const GetAssertionHandler = (
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   assertionReader: AssertionReader
 ): IGetAssertionHandler => async (
   context,
@@ -87,7 +87,7 @@ export const GetAssertionHandler = (
     ),
     TE.chain(
       flow(
-        popDocumentReader,
+        publicKeyDocumentReader,
         TE.mapLeft(error =>
           logAndReturnResponse(
             context,
@@ -130,10 +130,10 @@ export const GetAssertionHandler = (
 // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 export function GetAssertion(
   jwtConfig: JWTConfig,
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   assertionReader: AssertionReader
 ): express.RequestHandler {
-  const handler = GetAssertionHandler(popDocumentReader, assertionReader);
+  const handler = GetAssertionHandler(publicKeyDocumentReader, assertionReader);
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     AzureApiAuthMiddleware(new Set([UserGroup.ApiLollipopAssertionRead])),

@@ -21,7 +21,7 @@ import {
   ErrorKind
 } from "./errors";
 
-export type PopDocumentReader = RTE.ReaderTaskEither<
+export type PublicKeyDocumentReader = RTE.ReaderTaskEither<
   AssertionRef,
   DomainError,
   RetrievedLolliPopPubKeys
@@ -38,16 +38,16 @@ export type AssertionReader = RTE.ReaderTaskEither<
 // -------------------------
 
 /**
- * Return a PopDocumentReader that retrieves the value from Cosmos
+ * Return a PublicKeyDocumentReader that retrieves the value from Cosmos
  *
  * @param lollipopKeysModel the LolliPOPKeysModel model to use
- * @returns The PopDocumentReader
+ * @returns The PublicKeyDocumentReader
  */
-export const getPopDocumentReader = (
+export const getPublicKeyDocumentReader = (
   lollipopKeysModel: LolliPOPKeysModel
-): PopDocumentReader => (
+): PublicKeyDocumentReader => (
   assertionRef: AssertionRef
-): ReturnType<PopDocumentReader> =>
+): ReturnType<PublicKeyDocumentReader> =>
   pipe(
     lollipopKeysModel.findLastVersionByModelId([assertionRef]),
     TE.mapLeft(error => ({

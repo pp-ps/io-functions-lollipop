@@ -30,7 +30,7 @@ import { AssertionFileName } from "../generated/definitions/internal/AssertionFi
 import { RetrievedLolliPopPubKeys } from "../model/lollipop_keys";
 
 import { AssertionWriter, PopDocumentWriter } from "../utils/writers";
-import { PopDocumentReader } from "../utils/readers";
+import { PublicKeyDocumentReader } from "../utils/readers";
 import {
   isPendingLollipopPubKey,
   isValidLollipopPubKey,
@@ -82,7 +82,7 @@ type ActivatePubKeyHandler = (
   | IResponseErrorInternal
 >;
 export const ActivatePubKeyHandler = (
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   popDocumentWriter: PopDocumentWriter,
   assertionWriter: AssertionWriter
 ): ActivatePubKeyHandler => (
@@ -91,7 +91,7 @@ export const ActivatePubKeyHandler = (
   body
 ): ReturnType<ActivatePubKeyHandler> =>
   pipe(
-    popDocumentReader(assertion_ref),
+    publicKeyDocumentReader(assertion_ref),
     TE.mapLeft(error =>
       logAndReturnResponse(
         context,
@@ -204,12 +204,12 @@ export const ActivatePubKeyHandler = (
   )();
 
 export const ActivatePubKey = (
-  popDocumentReader: PopDocumentReader,
+  publicKeyDocumentReader: PublicKeyDocumentReader,
   popDocumentWriter: PopDocumentWriter,
   assertionWriter: AssertionWriter
 ): express.RequestHandler => {
   const handler = ActivatePubKeyHandler(
-    popDocumentReader,
+    publicKeyDocumentReader,
     popDocumentWriter,
     assertionWriter
   );

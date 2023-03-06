@@ -8,7 +8,7 @@ import * as O from "fp-ts/Option";
 import * as fn_commons from "@pagopa/io-functions-commons/dist/src/utils/azure_storage";
 
 import { LolliPOPKeysModel } from "../../model/lollipop_keys";
-import { getAssertionReader, getPopDocumentReader } from "../readers";
+import { getAssertionReader, getPublicKeyDocumentReader } from "../readers";
 
 import {
   aRetrievedPendingLollipopPubKeySha256,
@@ -47,21 +47,25 @@ getBlobAsTextMock.mockImplementation(
 // Tests
 // --------------------------
 
-describe("PopDocumentReader", () => {
+describe("PublicKeyDocumentReader", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("should return the existing popDocument", async () => {
-    const popDocumentReader = getPopDocumentReader(lollipopPubKeysModelMock);
+    const publicKeyDocumentReader = getPublicKeyDocumentReader(
+      lollipopPubKeysModelMock
+    );
 
-    const result = await popDocumentReader(aValidSha256AssertionRef)();
+    const result = await publicKeyDocumentReader(aValidSha256AssertionRef)();
     expect(result).toEqual(E.right(aRetrievedPendingLollipopPubKeySha256));
   });
 
   it("should return NotFound if document does not exists", async () => {
     findLastVersionByModelIdMock.mockImplementationOnce(() => TE.of(O.none));
-    const popDocumentReader = getPopDocumentReader(lollipopPubKeysModelMock);
+    const publicKeyDocumentReader = getPublicKeyDocumentReader(
+      lollipopPubKeysModelMock
+    );
 
-    const result = await popDocumentReader(aValidSha256AssertionRef)();
+    const result = await publicKeyDocumentReader(aValidSha256AssertionRef)();
     expect(result).toMatchObject(
       E.left({
         kind: "NotFound"
@@ -76,9 +80,11 @@ describe("PopDocumentReader", () => {
         error: { message: "an Error" } as ErrorResponse
       })
     );
-    const popDocumentReader = getPopDocumentReader(lollipopPubKeysModelMock);
+    const publicKeyDocumentReader = getPublicKeyDocumentReader(
+      lollipopPubKeysModelMock
+    );
 
-    const result = await popDocumentReader(aValidSha256AssertionRef)();
+    const result = await publicKeyDocumentReader(aValidSha256AssertionRef)();
     expect(result).toEqual(
       E.left({
         kind: "Internal",

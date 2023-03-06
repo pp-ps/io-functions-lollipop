@@ -13,7 +13,10 @@ import {
   LOLLIPOPKEYS_COLLECTION_NAME
 } from "../model/lollipop_keys";
 import { getConfigOrThrow } from "../utils/config";
-import { getAssertionReader, getPopDocumentReader } from "../utils/readers";
+import {
+  getAssertionReader,
+  getPublicKeyDocumentReader
+} from "../utils/readers";
 import { GetAssertion } from "./handler";
 
 const lollipopKeysModel = new LolliPOPKeysModel(
@@ -34,7 +37,7 @@ app.get(
   "/api/v1/assertions/:assertion_ref",
   GetAssertion(
     config,
-    getPopDocumentReader(lollipopKeysModel),
+    getPublicKeyDocumentReader(lollipopKeysModel),
     getAssertionReader(
       assertionBlobService,
       config.LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME

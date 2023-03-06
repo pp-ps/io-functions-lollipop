@@ -15,7 +15,7 @@ import {
   aRetrievedLolliPopPubKeys
 } from "../../__mocks__/lollipopkeysMock";
 import * as date_fns from "date-fns";
-import { PopDocumentReader } from "../../utils/readers";
+import { PublicKeyDocumentReader } from "../../utils/readers";
 import { ErrorKind } from "../../utils/errors";
 
 import { contextMock } from "../../__mocks__/context.mock";
@@ -40,10 +40,13 @@ const aValidRetrievedLollipopPubKey: NotPendingLolliPopPubKeys = {
   ...aLolliPopPubKeys
 };
 
-const popDocumentReaderMock = jest
+const publicKeyDocumentReaderMock = jest
   .fn()
   .mockImplementation(
-    () => TE.of(aValidRetrievedLollipopPubKey) as ReturnType<PopDocumentReader>
+    () =>
+      TE.of(aValidRetrievedLollipopPubKey) as ReturnType<
+        PublicKeyDocumentReader
+      >
   );
 const anAuthJwtGeneratorMock = jest
   .fn()
@@ -51,11 +54,11 @@ const anAuthJwtGeneratorMock = jest
 
 describe("GenerateLCParamsHandler", () => {
   it("GIVEN a valid input WHEN retrieve operation on cosmos fail THEN it should return an Internal server error", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.Internal, detail: "COSMOS_ERROR_RESPONSE" })
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -69,11 +72,11 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns none THEN it should return Not Found", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.NotFound })
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -87,11 +90,11 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns a pending lollipopPubKeys THEN it should return Forbidden", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right(aPendingLolliPopPubKeys)
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -104,14 +107,14 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns an expired lollipopPubKeys THEN it should return Forbidden", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right({
         ...aValidRetrievedLollipopPubKey,
         expiredAt: anExpiredOutOfGracePeriodDate
       })
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -124,7 +127,7 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN LC auth Jwt generation fails THEN returns Internal Server Error", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right(aValidRetrievedLollipopPubKey)
     );
     anAuthJwtGeneratorMock.mockImplementationOnce(() =>
@@ -132,7 +135,7 @@ describe("GenerateLCParamsHandler", () => {
     );
 
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -150,14 +153,14 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns an expired lollipopPubKeys in gracePeriod THEN it should return success", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right({
         ...aValidRetrievedLollipopPubKey,
         expiredAt: anExpiredInGracePeriodDate
       })
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
@@ -174,11 +177,11 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos returns a valid lollipopPubKeys THEN it should return success", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right(aValidRetrievedLollipopPubKey)
     );
     const result = await GenerateLCParamsHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       defaultGracePeriod,
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);

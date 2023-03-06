@@ -10,7 +10,7 @@ import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/d
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { ActivatePubKeyHandler } from "../handler";
-import { PopDocumentReader } from "../../utils/readers";
+import { PublicKeyDocumentReader } from "../../utils/readers";
 import { AssertionWriter, PopDocumentWriter } from "../../utils/writers";
 import { ActivatePubKeyPayload } from "../../generated/definitions/internal/ActivatePubKeyPayload";
 import {
@@ -69,14 +69,14 @@ const aPendingRetrievedPopDocumentWithMasterAlgo = {
   assertionFileName: `${aFiscalCode}-${aValidSha512AssertionRef}`
 };
 
-const popDocumentReaderMock = jest.fn(
+const publicKeyDocumentReaderMock = jest.fn(
   (assertionRef: AssertionRef) =>
     TE.of({
       ...aRetrievedPendingLollipopPubKeySha256,
       assertionRef: assertionRef,
       id: `${assertionRef}-000000`,
       version: 0
-    }) as ReturnType<PopDocumentReader>
+    }) as ReturnType<PublicKeyDocumentReader>
 );
 
 const popDocumentWriterMock = jest.fn(
@@ -106,12 +106,12 @@ describe("activatePubKey handler", () => {
   });
 
   it("should success given valid informations when used algo DIFFERENT FROM master algo", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right(aPendingRetrievedPopDocument)
     );
 
     const activatePubKeyHandler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -137,8 +137,8 @@ describe("activatePubKey handler", () => {
       aValidActivatePubKeyPayload
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledTimes(1);
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledTimes(1);
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).toHaveBeenCalledTimes(1);
@@ -177,12 +177,12 @@ describe("activatePubKey handler", () => {
   });
 
   it("should success given valid informations when used algo EQUALS TO master algo", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.right(aPendingRetrievedPopDocumentWithMasterAlgo)
     );
 
     const activatePubKeyHandler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -208,8 +208,8 @@ describe("activatePubKey handler", () => {
       aValidActivatePubKeyPayload
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledTimes(1);
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledTimes(1);
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha512AssertionRef
     );
     expect(assertionWriterMock).toHaveBeenCalledTimes(1);
@@ -245,12 +245,12 @@ describe("ActivatePubKey - Errors", () => {
   });
 
   it("should return 500 Error when assertionRef doen not exists", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.NotFound })
     );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -267,7 +267,7 @@ describe("ActivatePubKey - Errors", () => {
         "Internal server error: Error while reading pop document: NotFound"
     });
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).not.toHaveBeenCalled();
@@ -275,7 +275,7 @@ describe("ActivatePubKey - Errors", () => {
   });
 
   it("should return 403 Forbidden Not Authorized when a pop document with status DIFFERENT FROM PENDING is found", async () => {
-    popDocumentReaderMock.mockImplementationOnce(assertionRef =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(assertionRef =>
       TE.of({
         ...aRetrievedValidLollipopPubKeySha256,
         assertionRef: assertionRef,
@@ -286,7 +286,7 @@ describe("ActivatePubKey - Errors", () => {
     );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -303,7 +303,7 @@ describe("ActivatePubKey - Errors", () => {
       })
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).not.toHaveBeenCalled();
@@ -311,12 +311,12 @@ describe("ActivatePubKey - Errors", () => {
   });
 
   it("should return 500 Internal Error when an error occurred reading document", async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.Internal, detail: "an Error" })
     );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -333,7 +333,7 @@ describe("ActivatePubKey - Errors", () => {
         "Internal server error: Error while reading pop document: Internal"
     });
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).not.toHaveBeenCalled();
@@ -346,7 +346,7 @@ describe("ActivatePubKey - Errors", () => {
     );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -366,7 +366,7 @@ describe("ActivatePubKey - Errors", () => {
       assertionFileName: `${aFiscalCode}-${aValidSha256AssertionRef}`
     };
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).toHaveBeenCalledWith(
@@ -382,7 +382,7 @@ describe("ActivatePubKey - Errors", () => {
     );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -402,7 +402,7 @@ describe("ActivatePubKey - Errors", () => {
       assertionFileName: `${aFiscalCode}-${aValidSha256AssertionRef}`
     };
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).toHaveBeenCalledWith(
@@ -433,7 +433,7 @@ describe("ActivatePubKey - Errors", () => {
       );
 
     const handler = ActivatePubKeyHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       popDocumentWriterMock,
       assertionWriterMock
     );
@@ -453,7 +453,7 @@ describe("ActivatePubKey - Errors", () => {
       assertionFileName: `${aFiscalCode}-${aValidSha256AssertionRef}`
     };
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionWriterMock).toHaveBeenCalledWith(

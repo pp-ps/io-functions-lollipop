@@ -5,12 +5,12 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
-import { PopDocumentReader } from "../../utils/readers";
+import { PublicKeyDocumentReader } from "../../utils/readers";
 import { GetAssertionHandler } from "../handler";
 import {
   anAssertionContent,
   assertionReaderMock,
-  popDocumentReaderMock
+  publicKeyDocumentReaderMock
 } from "../../__mocks__/readers.mock";
 import { contextMock } from "../../__mocks__/context.mock";
 import {
@@ -44,7 +44,7 @@ describe("GetAssertionHandler - Success", () => {
   THEN the assertion is returned
   `,
     async ({ status }) => {
-      popDocumentReaderMock.mockImplementationOnce(
+      publicKeyDocumentReaderMock.mockImplementationOnce(
         (assertionRef: AssertionRef) =>
           TE.of({
             ...aRetrievedValidLollipopPubKeySha256,
@@ -52,11 +52,11 @@ describe("GetAssertionHandler - Success", () => {
             assertionRef: assertionRef,
             id: `${assertionRef}-000001`,
             version: 1
-          }) as ReturnType<PopDocumentReader>
+          }) as ReturnType<PublicKeyDocumentReader>
       );
 
       const handler = GetAssertionHandler(
-        popDocumentReaderMock,
+        publicKeyDocumentReaderMock,
         assertionReaderMock
       );
 
@@ -67,7 +67,7 @@ describe("GetAssertionHandler - Success", () => {
         aValidDecodedAuthJWT
       );
 
-      expect(popDocumentReaderMock).toHaveBeenCalledWith(
+      expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
         aValidSha256AssertionRef
       );
       expect(assertionReaderMock).toHaveBeenCalledWith(
@@ -93,7 +93,7 @@ describe("GetAssertionHandler - Failure", () => {
   THEN an IResponseErrorForbiddenNotAuthorized is returned
   `, async () => {
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -106,7 +106,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).not.toHaveBeenCalled();
+    expect(publicKeyDocumentReaderMock).not.toHaveBeenCalled();
     expect(assertionReaderMock).not.toHaveBeenCalled();
 
     expect(res).toMatchObject({
@@ -120,7 +120,7 @@ describe("GetAssertionHandler - Failure", () => {
   THEN an IResponseErrorForbiddenNotAuthorized is returned
   `, async () => {
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -131,7 +131,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).not.toHaveBeenCalled();
@@ -146,12 +146,12 @@ describe("GetAssertionHandler - Failure", () => {
   WHEN an error occurred retrieving the pub key
   THEN an IResponseErrorForbiddenNotAuthorized is returned
   `, async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.Internal, detail: "an Error" })
     );
 
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -162,7 +162,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).not.toHaveBeenCalled();
@@ -178,12 +178,12 @@ describe("GetAssertionHandler - Failure", () => {
   WHEN no pub key was found on db
   THEN an IResponseErrorGone is returned
   `, async () => {
-    popDocumentReaderMock.mockImplementationOnce(() =>
+    publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({ kind: ErrorKind.NotFound })
     );
 
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -194,7 +194,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).not.toHaveBeenCalled();
@@ -209,7 +209,7 @@ describe("GetAssertionHandler - Failure", () => {
   WHEN an error occurred retrieving the assertion
   THEN an IResponseErrorForbiddenNotAuthorized is returned
   `, async () => {
-    popDocumentReaderMock.mockImplementationOnce(
+    publicKeyDocumentReaderMock.mockImplementationOnce(
       (assertionRef: AssertionRef) =>
         TE.of({
           ...aRetrievedValidLollipopPubKeySha256,
@@ -217,7 +217,7 @@ describe("GetAssertionHandler - Failure", () => {
           assertionRef: assertionRef,
           id: `${assertionRef}-000001`,
           version: 1
-        }) as ReturnType<PopDocumentReader>
+        }) as ReturnType<PublicKeyDocumentReader>
     );
 
     assertionReaderMock.mockImplementationOnce(() =>
@@ -225,7 +225,7 @@ describe("GetAssertionHandler - Failure", () => {
     );
 
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -236,7 +236,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).toHaveBeenCalledWith(
@@ -253,7 +253,7 @@ describe("GetAssertionHandler - Failure", () => {
   WHEN no assertion was found in blob storage
   THEN an IResponseErrorGone is returned
   `, async () => {
-    popDocumentReaderMock.mockImplementationOnce(
+    publicKeyDocumentReaderMock.mockImplementationOnce(
       (assertionRef: AssertionRef) =>
         TE.of({
           ...aRetrievedValidLollipopPubKeySha256,
@@ -261,7 +261,7 @@ describe("GetAssertionHandler - Failure", () => {
           assertionRef: assertionRef,
           id: `${assertionRef}-000001`,
           version: 1
-        }) as ReturnType<PopDocumentReader>
+        }) as ReturnType<PublicKeyDocumentReader>
     );
 
     assertionReaderMock.mockImplementationOnce(() =>
@@ -269,7 +269,7 @@ describe("GetAssertionHandler - Failure", () => {
     );
 
     const handler = GetAssertionHandler(
-      popDocumentReaderMock,
+      publicKeyDocumentReaderMock,
       assertionReaderMock
     );
 
@@ -280,7 +280,7 @@ describe("GetAssertionHandler - Failure", () => {
       aValidDecodedAuthJWT
     );
 
-    expect(popDocumentReaderMock).toHaveBeenCalledWith(
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
       aValidSha256AssertionRef
     );
     expect(assertionReaderMock).toHaveBeenCalledWith(
