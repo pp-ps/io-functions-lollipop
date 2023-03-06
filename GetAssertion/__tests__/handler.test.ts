@@ -145,7 +145,7 @@ describe("GetAssertionHandler - Failure", () => {
   test(`
   GIVEN a valid assertionRef and a valid jwt
   WHEN an error occurred retrieving the pub key
-  THEN an IResponseErrorForbiddenNotAuthorized is returned
+  THEN an IResponseErrorInternal is returned
   `, async () => {
     publicKeyDocumentReaderMock.mockImplementationOnce(() =>
       TE.left({
@@ -216,7 +216,7 @@ describe("GetAssertionHandler - Failure", () => {
   test(`
   GIVEN a valid assertionRef and a valid jwt
   WHEN an error occurred retrieving the assertion
-  THEN an IResponseErrorForbiddenNotAuthorized is returned
+  THEN an IResponseErrorInternal is returned
   `, async () => {
     publicKeyDocumentReaderMock.mockImplementationOnce(
       (assertionRef: AssertionRef) =>
@@ -268,7 +268,7 @@ describe("GetAssertionHandler - Failure", () => {
 
   test(`
   GIVEN a valid assertionRef and a valid jwt
-  WHEN no assertion was found in blob storage
+  WHEN the assertion was not found in blob storage
   THEN an IResponseErrorGone is returned
   `, async () => {
     publicKeyDocumentReaderMock.mockImplementationOnce(
