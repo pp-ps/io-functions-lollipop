@@ -19,13 +19,18 @@ import {
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+import { UrlFromString } from "@pagopa/ts-commons/lib/url";
 
 const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 0 as NonNegativeInteger;
 
 // Assertion Client Configuration (itself)
 export const FirstLcAssertionClientConfig = t.type({
   FIRST_LC_ASSERTION_CLIENT_BASE_URL: NonEmptyString,
-  FIRST_LC_ASSERTION_CLIENT_SUBSCRIPTION_KEY: NonEmptyString
+  FIRST_LC_ASSERTION_CLIENT_SUBSCRIPTION_KEY: NonEmptyString,
+  IDP_KEYS_BASE_URL: withDefault(
+    t.string,
+    "https://api.is.eng.pagopa.it/idp-keys"
+  ).pipe(UrlFromString)
 });
 export type FirstLcAssertionClientConfig = t.TypeOf<
   typeof FirstLcAssertionClientConfig

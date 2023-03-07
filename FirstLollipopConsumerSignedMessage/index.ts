@@ -4,7 +4,10 @@ import { secureExpressApp } from "@pagopa/io-functions-commons/dist/src/utils/ex
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { createClient as externalClient } from "../generated/definitions/external/client";
-import { getConfigOrThrow } from "../utils/config";
+import {
+  FirstLcAssertionClientConfig,
+  getConfigOrThrow
+} from "../utils/config";
 import { getSignedMessageHandler } from "./handler";
 
 // Setup Express
@@ -27,7 +30,7 @@ const assertionClient = externalClient<"ApiKeyAuth">({
 // Add express route
 app.post(
   "/api/v1/first-lollipop-consumer/signed-message",
-  getSignedMessageHandler(assertionClient)
+  getSignedMessageHandler(assertionClient, config)
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);
