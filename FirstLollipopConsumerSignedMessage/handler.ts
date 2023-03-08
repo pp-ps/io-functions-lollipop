@@ -21,8 +21,8 @@ import * as E from "fp-ts/Either";
 import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { DOMParser } from "xmldom";
-import { SignedMessagePayload } from "../generated/definitions/lollipop-first-consumer/SignedMessagePayload";
-import { SignedMessageResponse } from "../generated/definitions/lollipop-first-consumer/SignedMessageResponse";
+import { SignMessagePayload } from "../generated/definitions/lollipop-first-consumer/SignMessagePayload";
+import { SignMessageResponse } from "../generated/definitions/lollipop-first-consumer/SignMessageResponse";
 import { Client } from "../generated/definitions/external/client";
 import {
   LollipopHeaders,
@@ -52,9 +52,9 @@ import { FirstLcAssertionClientConfig } from "../utils/config";
 type ISignedMessageHandler = (
   pubKey: JwkPublicKey,
   lollipopHeaders: LollipopHeaders,
-  inputPubkeys: SignedMessagePayload
+  inputPubkeys: SignMessagePayload
 ) => Promise<
-  | IResponseSuccessJson<SignedMessageResponse>
+  | IResponseSuccessJson<SignMessageResponse>
   | IResponseErrorValidation
   | IResponseErrorInternal
 >;
@@ -253,7 +253,7 @@ export const getSignedMessageHandler = (
       JwkPublicKeyFromToken
     ),
     RequiredHeadersMiddleware(LollipopHeaders),
-    RequiredBodyPayloadMiddleware(SignedMessagePayload),
+    RequiredBodyPayloadMiddleware(SignMessagePayload),
     HttpMessageSignatureMiddleware()
   );
   return wrapRequestHandler(
