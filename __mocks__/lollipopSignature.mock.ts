@@ -46,7 +46,6 @@ export const firstLcAssertionClientConfig: FirstLcAssertionClientConfig = {
 };
 
 export const validLollipopHeaders = {
-  "X-io-sign-qtspclauses": "anIoSignClauses",
   ["x-pagopa-lollipop-assertion-ref"]: aValidSha256AssertionRef,
   ["x-pagopa-lollipop-assertion-type"]: AssertionTypeEnum.SAML,
   ["x-pagopa-lollipop-user-id"]: aFiscalCode,
@@ -62,4 +61,11 @@ export const validLollipopHeaders = {
   ["signature-input"]: `sig1=("content-digest" "x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1678293988;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg"` as LollipopSignatureInput,
   ["signature"]: "sig1=:lTuoRytp53GuUMOB4Rz1z97Y96gfSeEOm/xVpO39d3HR6lLAy4KYiGq+1hZ7nmRFBt2bASWEpen7ov5O4wU3kQ==:" as LollipopSignature,
   ["content-digest"]: "sha-256=:cpyRqJ1VhoVC+MSs9fq4/4wXs4c46EyEFriskys43Zw=:" as LollipopContentDigest
+};
+
+export const validMultisignatureHeaders = {
+  ...validLollipopHeaders,
+  "X-io-sign-qtspclauses": "anIoSignClauses",
+  ["signature-input"]: `sig1=("x-io-sign-qtspclauses");created=1678299228;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg", sig2=("content-digest" "x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1678299228;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg"` as LollipopSignatureInput,
+  ["signature"]: "sig1=:dncsEeKERA9wzxBO0vbPIueMK7Izk4zZNX4D0jI+t17XQJ5YrhumR3MGvMiyarb+B8MPqn+rbOJwZt6dV+oXFA==:, sig2=:nbmFduqX8AdhXzqkFX+UIvicn3ZV5yZXqUO+3bceOT8WFPXRTVRcoOcjF+0+W5KLihAZjSW5GXSgCxVVEW8pqQ==:" as LollipopSignature
 };
