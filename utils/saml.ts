@@ -53,8 +53,10 @@ export const getFiscalNumberFromSamlResponse = (
         elem => elem.getAttribute("Name") === "fiscalNumber"
       )
     ),
-    O.chainNullableK(_ => _.textContent?.trim().replace("TINIT-", "")),
-    O.chain(_ => O.fromEither(FiscalCode.decode(_)))
+    O.chainNullableK(fiscalCodeElement =>
+      fiscalCodeElement.textContent?.trim().replace("TINIT-", "")
+    ),
+    O.chain(fiscalCode => O.fromEither(FiscalCode.decode(fiscalCode)))
   );
 
 export const getIssuerFromSamlResponse = (
@@ -67,72 +69,72 @@ export const getIssuerFromSamlResponse = (
     O.fromEither
   );
 
-const spidIdpKeyInfo = (certificateInBase64: NonEmptyString): FileKeyInfo => {
-  const toPem = (): string =>
-    `-----BEGIN CERTIFICATE-----\n${certificateInBase64}-----END CERTIFICATE-----`;
+// const spidIdpKeyInfo = (certificateInBase64: NonEmptyString): FileKeyInfo => {
+//   const toPem = (): string =>
+//     `-----BEGIN CERTIFICATE-----\n${certificateInBase64}-----END CERTIFICATE-----`;
 
-  return {
-    file: "input://certificateInBase64",
-    getKey: (_keyInfo: Node): Buffer => Buffer.from(toPem()),
-    getKeyInfo: (_key: string, _prefix: string = ""): string => ""
-  };
-};
+//   return {
+//     file: "input://certificateInBase64",
+//     getKey: (_keyInfo: Node): Buffer => Buffer.from(toPem()),
+//     getKeyInfo: (_key: string, _prefix: string = ""): string => ""
+//   };
+// };
 
-const checkSignature = (certificateInBase64: NonEmptyString) => (
-  signature: string | Node,
-  xml: NonEmptyString
-): E.Either<IResponseErrorInternal, boolean> =>
-  E.tryCatch(
-    () => {
-      const sig = new SignedXml();
-      // eslint-disable-next-line functional/immutable-data
-      sig.keyInfoProvider = spidIdpKeyInfo(certificateInBase64);
-      sig.loadSignature(signature);
-      return sig.checkSignature(xml);
-    },
-    flow(E.toError, e =>
-      ResponseErrorInternal(
-        `Error during assertion signature check: ${e.message}`
-      )
-    )
-  );
+// const checkSignature = (certificateInBase64: NonEmptyString) => (
+//   signature: string | Node,
+//   xml: NonEmptyString
+// ): E.Either<IResponseErrorInternal, boolean> =>
+//   E.tryCatch(
+//     () => {
+//       const sig = new SignedXml();
+//       // eslint-disable-next-line functional/immutable-data
+//       sig.keyInfoProvider = spidIdpKeyInfo(certificateInBase64);
+//       sig.loadSignature(signature);
+//       return sig.checkSignature(xml);
+//     },
+//     flow(E.toError, e =>
+//       ResponseErrorInternal(
+//         `Error during assertion signature check: ${e.message}`
+//       )
+//     )
+//   );
 
-export const verifySamlSignature = (
-  assertionXml: NonEmptyString,
-  optionalAssertionDoc?: Document
-) => {
-  const aaa = pipe(
-    optionalAssertionDoc,
-    O.fromNullable,
-    O.map(TE.of),
-    O.getOrElse(() =>
-      TE.tryCatch(
-        async () => new DOMParser().parseFromString(assertionXml, "text/xml"),
-        () => ResponseErrorInternal("Error parsing input saml response")
-      )
-    ),
-    TE.bindTo("assertionDoc"),
-    TE.bind("signature", ({ assertionDoc }) =>
-      pipe(
-        assertionDoc.evaluate(
-          "/Assertion/Signature/SignatureValue",
-          assertionDoc
-        ),
-        signature => signature.stringValue,
-        NonEmptyString.decode,
-        E.mapLeft(() =>
-          ResponseErrorInternal(
-            `Missing assertion signature in the retrieved assertion.`
-          )
-        ),
-        TE.fromEither
-      )
-    ),
-    TE.bind("assertionOnlyXml", ({ assertionDoc }) => {
-      const bbb = pipe(assertionDoc.evaluate("/Assertion", assertionDoc),
-        assertionNode => assertionNode.snapshotItem(0)?.
-      );
+// export const verifySamlSignature = (
+//   assertionXml: NonEmptyString,
+//   optionalAssertionDoc?: Document
+// ) => {
+//   const aaa = pipe(
+//     optionalAssertionDoc,
+//     O.fromNullable,
+//     O.map(TE.of),
+//     O.getOrElse(() =>
+//       TE.tryCatch(
+//         async () => new DOMParser().parseFromString(assertionXml, "text/xml"),
+//         () => ResponseErrorInternal("Error parsing input saml response")
+//       )
+//     ),
+//     TE.bindTo("assertionDoc"),
+//     TE.bind("signature", ({ assertionDoc }) =>
+//       pipe(
+//         assertionDoc.evaluate(
+//           "/Assertion/Signature/SignatureValue",
+//           assertionDoc
+//         ),
+//         signature => signature.stringValue,
+//         NonEmptyString.decode,
+//         E.mapLeft(() =>
+//           ResponseErrorInternal(
+//             `Missing assertion signature in the retrieved assertion.`
+//           )
+//         ),
+//         TE.fromEither
+//       )
+//     ),
+//     TE.bind("assertionOnlyXml", ({ assertionDoc }) => {
+//       const bbb = pipe(assertionDoc.evaluate("/Assertion", assertionDoc),
+//         assertionNode => assertionNode.snapshotItem(0)?.
+//       );
 
-    })
-  );
-};
+//     })
+//   );
+// };
