@@ -27,7 +27,7 @@ const assertionClient = externalClient<"ApiKeyAuth">({
 // Add express route
 app.post(
   "/api/v1/first-lollipop-consumer/signed-message",
-  getSignedMessageHandler(assertionClient)
+  getSignedMessageHandler(assertionClient, config)
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

@@ -7,22 +7,19 @@ import {
   IResponseErrorInternal,
   IResponseErrorValidation,
   IResponseSuccessJson,
-  ResponseErrorInternal
+  ResponseErrorInternal,
+  ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import * as TE from "fp-ts/TaskEither";
+import * as RA from "fp-ts/ReadonlyArray";
 import {
   JwkPublicKey,
   JwkPublicKeyFromToken
 } from "@pagopa/ts-commons/lib/jwk";
-import { constTrue, flow, identity, pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/Either";
 import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import * as t from "io-ts";
-import { IsoDateFromString } from "@pagopa/ts-commons/lib/dates";
-import { NonNegativeIntegerFromString } from "@pagopa/ts-commons/lib/numbers";
-import { Interval, isWithinInterval } from "date-fns";
-import * as A from "fp-ts/Array";
+import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { SignedMessagePayload } from "../generated/definitions/lollipop-first-consumer/SignedMessagePayload";
 import { SignedMessageResponse } from "../generated/definitions/lollipop-first-consumer/SignedMessageResponse";
 import { Client } from "../generated/definitions/external/client";
@@ -42,8 +39,6 @@ import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
 import { SamlUserInfo } from "../generated/definitions/external/SamlUserInfo";
 import {
   getFiscalNumberFromSamlResponse,
-  getIssueIstantInSecondsFromSamlResponse,
-  getIssuerFromSamlResponse,
   getRequestIDFromSamlResponse
 } from "../utils/saml";
 import {
@@ -63,6 +58,7 @@ type ISignedMessageHandler = (
   | IResponseErrorInternal
 >;
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 interface VerifierInput {
   readonly assertionXml: string;
   readonly assertionDoc: Document;
@@ -139,6 +135,10 @@ export const getAssertionUserIdVsCfVerifier = (
     ),
     TE.map(() => true as const)
   );
+
+export const getAssertionSignatureVerifier = (
+  _firstLcAssertionClientConfig: FirstLcAssertionClientConfig
+): Verifier => (): ReturnType<Verifier> => TE.of(true);
 
 // export const IdpKeysSpidPayload = t.array(
 //   t.union([t.literal("latest"), NonNegativeIntegerFromString])
@@ -294,24 +294,41 @@ export const getAssertionUserIdVsCfVerifier = (
 
 export const isAssertionSaml = (type: AssertionType) => (
   assertion: LCUserInfo
-): assertion is SamlUserInfo => type === AssertionTypeEnum.SAML;
+): assertion is SamlUserInfo =>
+  type === AssertionTypeEnum.SAML && SamlUserInfo.is(assertion);
 
 export const signedMessageHandler = (
-  assertionClient: AssertionClient
+  assertionClient: AssertionClient,
+  firstLcAssertionClientConfig: FirstLcAssertionClientConfig
 ): ISignedMessageHandler => async (
-  _pubKey,
+  pubKey,
   lollipopHeaders,
   _inputSignedMessage
-): ReturnType<ISignedMessageHandler> => {
-  const aaa = pipe(
-    TE.tryCatch(
-      () =>
-        assertionClient.getAssertion({
-          assertion_ref: lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
-          ["x-pagopa-lollipop-auth"]: `Bearer ${lollipopHeaders["x-pagopa-lollipop-auth-jwt"]}` as LollipopAuthBearer
-        }),
-      flow(E.toError, e =>
-        ResponseErrorInternal(`Error retrieving assertion: ${e.message}`)
+): ReturnType<ISignedMessageHandler> =>
+  pipe(
+    lollipopHeaders,
+    TE.fromPredicate(
+      headers =>
+        headers["x-pagopa-lollipop-original-method"] ===
+          firstLcAssertionClientConfig.EXPECTED_FIRST_LC_ORIGINAL_METHOD &&
+        headers["x-pagopa-lollipop-original-url"] ===
+          firstLcAssertionClientConfig.EXPECTED_FIRST_LC_ORIGINAL_URL.href,
+      headers =>
+        ResponseErrorInternal(
+          `Unexpected original method and/or original url: ${headers["x-pagopa-lollipop-original-method"]}, ${headers["x-pagopa-lollipop-original-url"]}`
+        )
+    ),
+    TE.chain(() =>
+      TE.tryCatch(
+        () =>
+          assertionClient.getAssertion({
+            // eslint-disable-next-line sonarjs/no-duplicate-string
+            assertion_ref: lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
+            ["x-pagopa-lollipop-auth"]: `Bearer ${lollipopHeaders["x-pagopa-lollipop-auth-jwt"]}` as LollipopAuthBearer
+          }),
+        flow(E.toError, e =>
+          ResponseErrorInternal(`Error retrieving assertion: ${e.message}`)
+        )
       )
     ),
     TE.chainEitherK(
@@ -343,18 +360,39 @@ export const signedMessageHandler = (
         async () => new DOMParser().parseFromString(assertionXml, "text/xml"),
         () => ResponseErrorInternal("Error parsing retrieved saml response")
       )
-    )
-  );
-  // check assertion ref -> hash public key
-  // check user id -> CF
-  // check assertion sign
-  return ResponseErrorInternal("Not Implemented");
-};
+    ),
+    TE.chain(verifierInput =>
+      pipe(
+        [
+          getAssertionRefVsInRensponseToVerifier(
+            pubKey,
+            lollipopHeaders["x-pagopa-lollipop-assertion-ref"]
+          ),
+          getAssertionUserIdVsCfVerifier(
+            lollipopHeaders["x-pagopa-lollipop-user-id"]
+          ),
+          getAssertionSignatureVerifier(firstLcAssertionClientConfig)
+        ],
+        RA.map(verifier => verifier(verifierInput)),
+        TE.sequenceArray
+      )
+    ),
+    TE.map(() =>
+      ResponseSuccessJson({
+        response: lollipopHeaders["x-pagopa-lollipop-assertion-ref"]
+      })
+    ),
+    TE.toUnion
+  )();
 
 export const getSignedMessageHandler = (
-  assertionClient: AssertionClient
+  assertionClient: AssertionClient,
+  firstLcAssertionClientConfig: FirstLcAssertionClientConfig
 ): express.RequestHandler => {
-  const handler = signedMessageHandler(assertionClient);
+  const handler = signedMessageHandler(
+    assertionClient,
+    firstLcAssertionClientConfig
+  );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     RequiredHeaderMiddleware(
