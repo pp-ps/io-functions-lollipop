@@ -6,7 +6,7 @@ import {
   ResponseErrorFromValidationErrors,
   ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
-import { constFalse, constTrue, identity, pipe } from "fp-ts/lib/function";
+import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import * as E from "fp-ts/Either";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -51,12 +51,13 @@ export const validateHttpSignature = (
   request: express.Request,
   assertionRef: AssertionRef,
   publicKey: JwkPublicKey
-): TE.TaskEither<Error, boolean> =>
+): TE.TaskEither<Error, true> =>
   pipe(
     {
       httpHeaders: request.headers,
       url: request.url,
       method: request.method,
+      body: request.body,
       verifier: {
         keyMap: {
           [assertionRef]: {
@@ -72,8 +73,12 @@ export const validateHttpSignature = (
     TE.map(res =>
       res.map(r =>
         r.verified
-          ? TE.of(true)
-          : TE.left(new Error("HTTP Request Signature failed"))
+          ? TE.of(true as const)
+          : TE.left(
+              new Error(
+                `HTTP Request Signature failed ${JSON.stringify(r.reason)}`
+              )
+            )
       )
     ),
     TE.chainW(res =>
@@ -86,15 +91,19 @@ export const validateHttpSignature = (
 export const keyToPem = (key: JwkPublicKey): E.Either<Error, string> =>
   E.tryCatch(() => jwkToPem(key), E.toError);
 
+/**
+ *
+ * @returns
+ */
 export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
   "IResponseErrorValidation" | "IResponseErrorInternal",
-  boolean
+  true
 > => async (
   request
 ): ReturnType<
   IRequestMiddleware<
     "IResponseErrorValidation" | "IResponseErrorInternal",
-    boolean
+    true
   >
 > =>
   pipe(
@@ -133,11 +142,6 @@ export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
             lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
             key
           )
-        ),
-        TE.filterOrElse(
-          identity,
-          () =>
-            new Error("The signature do not match with the request headers!")
         ),
         TE.mapLeft(error =>
           ResponseErrorInternal(

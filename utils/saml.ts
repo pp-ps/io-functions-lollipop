@@ -15,7 +15,7 @@ export const getAttributeFromSamlResponse = (
 ) => (doc: Document): O.Option<string> =>
   pipe(
     O.fromNullable(
-      doc.getElementsByTagNameNS(SAML_NAMESPACE.PROTOCOL, tagName).item(0)
+      doc.getElementsByTagNameNS(SAML_NAMESPACE.ASSERTION, tagName).item(0)
     ),
     O.chain(element =>
       O.fromEither(NonEmptyString.decode(element.getAttribute(attrName)))

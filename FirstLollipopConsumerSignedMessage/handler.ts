@@ -20,6 +20,7 @@ import { flow, pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/Either";
 import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { DOMParser } from "xmldom";
 import { SignedMessagePayload } from "../generated/definitions/lollipop-first-consumer/SignedMessagePayload";
 import { SignedMessageResponse } from "../generated/definitions/lollipop-first-consumer/SignedMessageResponse";
 import { Client } from "../generated/definitions/external/client";
@@ -206,7 +207,11 @@ export const signedMessageHandler = (
     TE.bind("assertionDoc", ({ assertionXml }) =>
       TE.tryCatch(
         async () => new DOMParser().parseFromString(assertionXml, "text/xml"),
-        () => ResponseErrorInternal("Error parsing retrieved saml response")
+        flow(E.toError, e =>
+          ResponseErrorInternal(
+            `Error parsing retrieved saml response: ${e.message}`
+          )
+        )
       )
     ),
     TE.chain(verifierInput =>

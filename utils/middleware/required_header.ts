@@ -12,6 +12,7 @@ import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyTo
 import { LollipopMethod } from "../../generated/definitions/lollipop-first-consumer/LollipopMethod";
 import { LollipopOriginalURL } from "../../generated/definitions/lollipop-first-consumer/LollipopOriginalURL";
 import { LollipopSignatureInput } from "../../generated/definitions/lollipop-first-consumer/LollipopSignatureInput";
+import { LollipopSignature } from "../../generated/definitions/lollipop-first-consumer/LollipopSignature";
 
 /**
  * Returns a request middleware that extract an optional
@@ -51,6 +52,7 @@ export const LollipopHeaders = t.type({
   ["x-pagopa-lollipop-auth-jwt"]: NonEmptyString,
   ["x-pagopa-lollipop-original-method"]: LollipopMethod,
   ["x-pagopa-lollipop-original-url"]: LollipopOriginalURL,
-  ["signature-input"]: LollipopSignatureInput
+  ["signature-input"]: LollipopSignatureInput,
+  ["signature"]: LollipopSignature
 });
 export type LollipopHeaders = t.TypeOf<typeof LollipopHeaders>;

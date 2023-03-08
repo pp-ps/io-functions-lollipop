@@ -1,4 +1,6 @@
 openapi: 3.0.1
+servers:
+  - url: https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer
 info:
   title: LolliPoP Consumer Example
   description: >-
@@ -41,16 +43,16 @@ info:
                        └┬┘                                          └┬┘                                      └┬┘
                       ┌───┐                                       ┌─────┐                                    ┌──┐  
                       │APP│                                       │IO-BE│                                    │LC│  
-                      └───┘                                       └─────┘                                    └──┘  
+                      └───┘                                       └─────┘                                    └──┘
   version: 1.0.0
 security:
   - ApiKeyAuth: []
 
 # Example endpoint
 paths:
-  /signed-message:
+  /sign-message:
     post:
-      operationId: signedMessage
+      operationId: signMessage
       summary: POST a signed request with Lollipop
       parameters:
         - name: x-pagopa-lollipop-original-method
@@ -112,14 +114,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SignedMessagePayload"
+              $ref: "#/components/schemas/SignMessagePayload"
       responses:
         "200":
           description: "Success response"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SignedMessageResponse"
+                $ref: "#/components/schemas/SignMessageResponse"
 
 components:
   securitySchemes:
@@ -192,14 +194,14 @@ components:
       type: string
       pattern: ^(sha512-[A-Za-z0-9-_=]{1,88})$
 
-    SignedMessagePayload:
+    SignMessagePayload:
       type: object
       properties:
         message:
           type: string
       required:
         - message
-    SignedMessageResponse:
+    SignMessageResponse:
       type: object
       properties:
         response:
