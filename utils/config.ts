@@ -19,8 +19,32 @@ import {
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+import { UrlFromString } from "@pagopa/ts-commons/lib/url";
+import { LollipopMethod } from "../generated/definitions/lollipop-first-consumer/LollipopMethod";
 
 const DEFAULT_KEYS_EXPIRE_GRACE_PERIODS_IN_DAYS = 0 as NonNegativeInteger;
+
+// Assertion Client Configuration (itself)
+export const FirstLcAssertionClientConfig = t.type({
+  EXPECTED_FIRST_LC_ORIGINAL_METHOD: withDefault(t.string, "POST").pipe(
+    LollipopMethod
+  ),
+  EXPECTED_FIRST_LC_ORIGINAL_URL: withDefault(
+    t.string,
+    "https://api-app.io.pagopa.it/first-lollipop/sign"
+  ).pipe(UrlFromString),
+
+  FIRST_LC_ASSERTION_CLIENT_BASE_URL: NonEmptyString,
+  FIRST_LC_ASSERTION_CLIENT_SUBSCRIPTION_KEY: NonEmptyString,
+
+  IDP_KEYS_BASE_URL: withDefault(
+    t.string,
+    "https://api.is.eng.pagopa.it/idp-keys"
+  ).pipe(UrlFromString)
+});
+export type FirstLcAssertionClientConfig = t.TypeOf<
+  typeof FirstLcAssertionClientConfig
+>;
 
 // ----------------------------
 // JWT Configuration
@@ -66,7 +90,8 @@ export const IConfig = t.intersection([
 
     isProduction: t.boolean
   }),
-  JWTConfig
+  JWTConfig,
+  FirstLcAssertionClientConfig
 ]);
 
 export const envConfig = {
