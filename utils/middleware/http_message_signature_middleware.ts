@@ -68,7 +68,7 @@ export const validateHttpSignature = (
     },
     TE.of,
     TE.chain(params =>
-      TE.tryCatch(async () => await verifySignatureHeader(params), E.toError)
+      TE.tryCatch(async () => verifySignatureHeader(params), E.toError)
     ),
     TE.map(res =>
       res.map(r =>
