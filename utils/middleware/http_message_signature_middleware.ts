@@ -36,13 +36,17 @@ export const LollipopHeadersForSignature = t.intersection([
 ]);
 
 export const isValidDigestHeader = (
-  contentDigestHeader: string,
-  body: Buffer
+  contentDigestHeader: string | undefined,
+  body: Buffer | string
 ): boolean =>
   pipe(
-    E.tryCatch(
-      () => crypto.validateDigestHeader(contentDigestHeader, body),
-      E.toError
+    contentDigestHeader,
+    E.fromNullable(new Error("Missing 'content-digest' header")),
+    E.chain(contentDigest =>
+      E.tryCatch(
+        () => crypto.validateDigestHeader(contentDigest, body),
+        E.toError
+      )
     ),
     E.fold(constFalse, constTrue)
   );
@@ -50,14 +54,15 @@ export const isValidDigestHeader = (
 export const validateHttpSignature = (
   request: express.Request,
   assertionRef: AssertionRef,
-  publicKey: JwkPublicKey
+  publicKey: JwkPublicKey,
+  body?: string
 ): TE.TaskEither<Error, true> =>
   pipe(
     {
       httpHeaders: request.headers,
       url: request.url,
       method: request.method,
-      body: request.body,
+      body,
       verifier: {
         keyMap: {
           [assertionRef]: {
@@ -124,13 +129,16 @@ export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
     ),
     E.filterOrElseW(
       ({ rawBody, lollipopHeaders }) =>
-        lollipopHeaders["content-digest"]
+        rawBody || lollipopHeaders["content-digest"]
           ? isValidDigestHeader(lollipopHeaders["content-digest"], rawBody)
           : true,
-      () => ResponseErrorInternal("The body do not match the content digest")
+      () =>
+        ResponseErrorInternal(
+          "The content-digest is empty or do not match the body"
+        )
     ),
     TE.fromEither,
-    TE.chainW(({ lollipopHeaders }) =>
+    TE.chainW(({ rawBody, lollipopHeaders }) =>
       pipe(
         lollipopHeaders["x-pagopa-lollipop-public-key"],
         JwkPublicKeyFromToken.decode,
@@ -140,7 +148,8 @@ export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
           validateHttpSignature(
             request,
             lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
-            key
+            key,
+            rawBody
           )
         ),
         TE.mapLeft(error =>
