@@ -17,7 +17,7 @@ describe("HttpMessageSignatureMiddleware", () => {
       app: {
         get: () => ({
           bindings: {
-            req: { rawBody: Buffer.from(JSON.stringify(aValidPayload)) }
+            req: { rawBody: JSON.stringify(aValidPayload) }
           }
         })
       },
@@ -40,7 +40,7 @@ describe("HttpMessageSignatureMiddleware", () => {
       app: {
         get: () => ({
           bindings: {
-            req: { rawBody: Buffer.from(JSON.stringify(aValidPayload)) }
+            req: { rawBody: JSON.stringify(aValidPayload) }
           }
         })
       },

@@ -21,7 +21,7 @@ export const constants = {
  * @returns {string} contentDigest The 'Content-Digest' header value.
  */
 export const generateDigestHeader = (
-  payload: Buffer,
+  payload: Buffer | string,
   cipher: string
 ): string => {
   // Validate the input payload
@@ -52,7 +52,7 @@ export const generateDigestHeader = (
  */
 export const validateDigestHeader = (
   contentDigestHeader: string,
-  body: Buffer
+  body: Buffer | string
 ): void => {
   if (!contentDigestHeader) {
     throw new Error("Content-Digest header missing");
