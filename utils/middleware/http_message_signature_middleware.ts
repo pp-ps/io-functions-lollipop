@@ -27,7 +27,7 @@ import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyTo
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
 import * as crypto from "../crypto";
-import { customVerify } from "../httpSignature";
+import { customVerify } from "../httpSignature.verifiers";
 
 export const LollipopHeadersForSignature = t.intersection([
   t.type({
