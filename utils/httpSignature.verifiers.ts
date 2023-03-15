@@ -9,7 +9,7 @@ import { algMap } from "@mattrglobal/http-signatures";
 /**
  * Builder for `rsa-pss-sha256` signature verifier.
  * It's based on the`rsa-pss-sha512` one, defined in @mattrglobal/http-signatures library.
- * See https://github.com/mattrglobal/http-signatures/blob/master/src/common/cryptoPrimatives.ts#L97
+ * See https://github.com/mattrglobal/http-signatures/blob/v4.0.1/src/common/cryptoPrimatives.ts
  *
  * @param key the public key
  * @returns a function that takes the data and the signature
@@ -36,10 +36,10 @@ export const getVerifyRsaPssSha256 = (key: JsonWebKey) => async (
 export type SupportedAlgTypes = keyof typeof extendedAlgMap;
 
 export const extendedAlgMap = {
-  ...algMap,
   ["rsa-pss-sha256"]: {
     verify: getVerifyRsaPssSha256
-  }
+  },
+  ...algMap
 };
 
 export const customVerify = (keyMap: {
