@@ -1,29 +1,33 @@
 /* eslint-disable sort-keys */
 // TODO: Move this file into io-functions-commons
 
-import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
-import {
-  ResponseErrorFromValidationErrors,
-  ResponseErrorInternal
-} from "@pagopa/ts-commons/lib/responses";
-import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
-import * as t from "io-ts";
-import * as E from "fp-ts/Either";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { getAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
-import * as TE from "fp-ts/TaskEither";
 import * as express from "express";
+import { verifySignatureHeader } from "@mattrglobal/http-signatures";
+import * as jwkToPem from "jwk-to-pem";
+
+import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
+import * as TE from "fp-ts/TaskEither";
+import * as E from "fp-ts/Either";
+import * as t from "io-ts";
+
 import {
   JwkPublicKey,
   JwkPublicKeyFromToken
 } from "@pagopa/ts-commons/lib/jwk";
-import * as jwkToPem from "jwk-to-pem";
+import {
+  ResponseErrorFromValidationErrors,
+  ResponseErrorInternal
+} from "@pagopa/ts-commons/lib/responses";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
-import { verifySignatureHeader } from "@mattrglobal/http-signatures";
-import * as crypto from "../crypto";
-import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
+import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
+import { getAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
+import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
+
+import * as crypto from "../crypto";
+import { customVerify } from "../httpSignature.verifiers";
 
 export const LollipopHeadersForSignature = t.intersection([
   t.type({
@@ -64,11 +68,11 @@ export const validateHttpSignature = (
       method: request.method,
       body,
       verifier: {
-        keyMap: {
+        verify: customVerify({
           [assertionRef]: {
             key: publicKey
           }
-        }
+        })
       }
     },
     TE.of,
