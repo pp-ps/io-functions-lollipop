@@ -64,8 +64,6 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
 
     const res = await HttpMessageSignatureMiddleware()(mockReq);
 
-    console.log(res);
-
     expect(res).toMatchObject(E.right(true));
   });
 

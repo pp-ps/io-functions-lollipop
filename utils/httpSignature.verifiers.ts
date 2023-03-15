@@ -1,15 +1,21 @@
 import * as crypto from "crypto";
 import { JsonWebKey } from "crypto";
-import {
-  AlgorithmTypes,
-  verifyEcdsaSha256
-} from "@mattrglobal/http-signatures";
+import { algMap } from "@mattrglobal/http-signatures";
 
 // ----------------------
 // Custom Verifiers
 // ----------------------
 
-export const verifyRsaPssSha256 = (key: JsonWebKey) => async (
+/**
+ * Builder for `rsa-pss-sha256` signature verifier.
+ * It's based on the`rsa-pss-sha512` one, defined in @mattrglobal/http-signatures library.
+ * See https://github.com/mattrglobal/http-signatures/blob/master/src/common/cryptoPrimatives.ts#L97
+ *
+ * @param key the public key
+ * @returns a function that takes the data and the signature
+ *  and return the comparison between them, based on the algorithm and the public key
+ */
+export const getVerifyRsaPssSha256 = (key: JsonWebKey) => async (
   data: Uint8Array,
   signature: Uint8Array
 ): Promise<boolean> => {
@@ -27,34 +33,26 @@ export const verifyRsaPssSha256 = (key: JsonWebKey) => async (
     );
 };
 
-export type SupportedAlgTypes = keyof typeof myAlgMap;
+export type SupportedAlgTypes = keyof typeof extendedAlgMap;
 
-const isSupportedAlg = (alg: string): alg is SupportedAlgTypes =>
-  alg === "ecdsa-p256-sha256" || alg === "rsa-pss-sha256";
-
-export const myAlgMap = {
-  ["ecdsa-p256-sha256"]: {
-    verify: verifyEcdsaSha256
-  },
+export const extendedAlgMap = {
+  ...algMap,
   ["rsa-pss-sha256"]: {
-    verify: verifyRsaPssSha256
+    verify: getVerifyRsaPssSha256
   }
 };
 
 export const customVerify = (keyMap: {
   readonly [keyid: string]: { readonly key: JsonWebKey };
 }) => async (
-  signatureParams: { readonly keyid: string; readonly alg: AlgorithmTypes },
+  signatureParams: { readonly keyid: string; readonly alg: SupportedAlgTypes },
   data: Uint8Array,
   signature: Uint8Array
 ): Promise<boolean> => {
-  if (!isSupportedAlg(signatureParams.alg)) {
-    throw new Error("Unsupported algorithm");
-  }
   if (keyMap[signatureParams.keyid] === undefined) {
     return Promise.resolve(false);
   }
-  return myAlgMap[signatureParams.alg].verify(
+  return extendedAlgMap[signatureParams.alg].verify(
     keyMap[signatureParams.keyid].key
   )(data, signature);
 };
