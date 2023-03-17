@@ -26,6 +26,7 @@ import {
   ResponseErrorInternal,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 import { Context } from "@azure/functions";
 
@@ -38,6 +39,8 @@ import { AuthJWT, verifyJWTMiddleware } from "../utils/auth_jwt";
 import { isNotPendingLollipopPubKey } from "../utils/lollipopKeys";
 import { DomainError, ErrorKind, logAndReturnResponse } from "../utils/errors";
 import { JWTConfig } from "../utils/config";
+import { ILogger } from "../utils/logger";
+import { toHash } from "../utils/crypto";
 
 const domainErrorToResponseError = (
   error: DomainError
@@ -67,10 +70,11 @@ type IGetAssertionHandler = (
  */
 export const GetAssertionHandler = (
   publicKeyDocumentReader: PublicKeyDocumentReader,
-  assertionReader: AssertionReader
+  assertionReader: AssertionReader,
+  logger: ILogger
 ): IGetAssertionHandler => async (
   context,
-  _apiAuth,
+  apiAuth,
   assertionRef,
   authJwtPayload
 ): ReturnType<IGetAssertionHandler> =>
@@ -78,12 +82,23 @@ export const GetAssertionHandler = (
     assertionRef,
     TE.fromPredicate(
       ar => ar === authJwtPayload.assertionRef,
-      () =>
-        logAndReturnResponse(
+      () => {
+        const errorDetail = `jwt assertion_ref does not match the one in path`;
+        logger.trackEvent({
+          name: "lollipop.error.get-assertion",
+          properties: {
+            assertion_ref: assertionRef,
+            error: errorDetail as NonEmptyString,
+            operation_id: authJwtPayload.operationId,
+            subscription_id: apiAuth.subscriptionId
+          }
+        });
+        return logAndReturnResponse(
           context,
           ResponseErrorForbiddenNotAuthorized,
-          `jwt assertion_ref does not match the one in path`
-        )
+          errorDetail
+        );
+      }
     ),
     TE.chainW(
       flow(
@@ -108,7 +123,7 @@ export const GetAssertionHandler = (
         )
       )
     ),
-    TE.chainW(({ assertionFileName }) =>
+    TE.chainW(({ assertionFileName, fiscalCode }) =>
       pipe(
         assertionReader(assertionFileName),
         TE.mapLeft(error =>
@@ -127,6 +142,20 @@ export const GetAssertionHandler = (
           ResponseSuccessJson({
             response_xml: assertion
           })
+        ),
+        TE.map(response =>
+          pipe(
+            logger.trackEvent({
+              name: "lollipop.info.get-assertion",
+              properties: {
+                assertion_ref: assertionRef,
+                fiscal_code: toHash(fiscalCode),
+                operation_id: authJwtPayload.operationId,
+                subscription_id: apiAuth.subscriptionId
+              }
+            }),
+            () => response
+          )
         )
       )
     ),
@@ -140,9 +169,14 @@ export const GetAssertionHandler = (
 export function GetAssertion(
   jwtConfig: JWTConfig,
   publicKeyDocumentReader: PublicKeyDocumentReader,
-  assertionReader: AssertionReader
+  assertionReader: AssertionReader,
+  logger: ILogger
 ): express.RequestHandler {
-  const handler = GetAssertionHandler(publicKeyDocumentReader, assertionReader);
+  const handler = GetAssertionHandler(
+    publicKeyDocumentReader,
+    assertionReader,
+    logger
+  );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     AzureApiAuthMiddleware(new Set([UserGroup.ApiLollipopAssertionRead])),

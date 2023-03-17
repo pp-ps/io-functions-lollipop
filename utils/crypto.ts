@@ -4,6 +4,8 @@
 
 import * as crypto from "crypto";
 
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+
 export const constants = {
   BASE64: "base64",
   COLON: ":",
@@ -80,3 +82,12 @@ export const validateDigestHeader = (
     );
   }
 };
+
+/**
+ * Returns hashed input based on sha256 algo
+ */
+export const toHash = (s: string): NonEmptyString =>
+  crypto
+    .createHash("sha256")
+    .update(s)
+    .digest("hex") as NonEmptyString;

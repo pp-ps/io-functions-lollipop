@@ -17,13 +17,20 @@ import {
   getAssertionReader,
   getPublicKeyDocumentReader
 } from "../utils/readers";
+import { createLogger } from "../utils/logger";
+import { initTelemetryClient } from "../utils/appinsights";
+
 import { GetAssertion } from "./handler";
+
+const config = getConfigOrThrow();
+
+const telemetryClient = initTelemetryClient(
+  config.APPINSIGHTS_INSTRUMENTATIONKEY
+);
 
 const lollipopKeysModel = new LolliPOPKeysModel(
   cosmosdbInstance.container(LOLLIPOPKEYS_COLLECTION_NAME)
 );
-
-const config = getConfigOrThrow();
 
 const assertionBlobService = createBlobService(
   config.LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
@@ -41,7 +48,8 @@ app.get(
     getAssertionReader(
       assertionBlobService,
       config.LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME
-    )
+    ),
+    createLogger(telemetryClient)
   )
 );
 
