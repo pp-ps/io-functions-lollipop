@@ -51,10 +51,9 @@ export interface ILogger {
  * return an ILogger based on Telemetry Client
  */
 export const createLogger = (telemetryClient: TelemetryClient): ILogger => ({
-  trackEvent: (e): void => {
+  trackEvent: (event): void => {
     telemetryClient.trackEvent({
-      name: e.name,
-      properties: e.properties,
+      ...event,
       tagOverrides: { samplingEnabled: "false" }
     });
   }
