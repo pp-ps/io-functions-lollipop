@@ -21,6 +21,12 @@ import {
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 import { ErrorKind } from "../../utils/errors";
 import { toHash } from "../../utils/crypto";
+import { useWinstonFor } from "@pagopa/winston-ts";
+import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
+import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
+import { AzureContextTransport } from "@pagopa/io-functions-commons/dist/src/utils/logging";
+import { TelemetryClient } from "applicationinsights";
+import { ResponseErrorForbiddenNotAuthorized } from "@pagopa/ts-commons/lib/responses";
 
 const loggerMock = {
   trackEvent: jest.fn(e => {
@@ -34,6 +40,25 @@ const aValidDecodedAuthJWT = {
   assertionRef: aValidSha256AssertionRef,
   operationId: "anOperationId" as NonEmptyString
 };
+
+const azureContextTransport = new AzureContextTransport(
+  () => contextMock.log,
+  {}
+);
+useWinstonFor({
+  loggerId: LoggerId.event,
+  transports: [
+    withApplicationInsight(
+      (loggerMock as unknown) as TelemetryClient,
+      "lollipop"
+    ),
+    azureContextTransport
+  ]
+});
+useWinstonFor({
+  loggerId: LoggerId.default,
+  transports: [azureContextTransport]
+});
 
 describe("GetAssertionHandler - Success", () => {
   beforeEach(() => {
@@ -128,14 +153,17 @@ describe("GetAssertionHandler - Failure", () => {
     expect(publicKeyDocumentReaderMock).not.toHaveBeenCalled();
     expect(assertionReaderMock).not.toHaveBeenCalled();
 
+    console.log(loggerMock.trackEvent.mock.calls[0]);
+
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.get-assertion",
       properties: {
         assertion_ref: anotherAssertionRef,
-        error: `jwt assertion_ref does not match the one in path`,
+        message: `${ResponseErrorForbiddenNotAuthorized.detail} | jwt assertion_ref does not match the one in path`,
         operation_id: aValidDecodedAuthJWT.operationId,
         subscription_id: auth.subscriptionId
-      }
+      },
+      tagOverrides: { samplingEnabled: "false" }
     });
 
     expect(res).toMatchObject({

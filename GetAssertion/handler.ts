@@ -26,10 +26,10 @@ import {
   ResponseErrorInternal,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 import { Context } from "@azure/functions";
 
+import { eventLog } from "@pagopa/winston-ts";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
@@ -41,6 +41,8 @@ import { DomainError, ErrorKind, logAndReturnResponse } from "../utils/errors";
 import { JWTConfig } from "../utils/config";
 import { ILogger } from "../utils/logger";
 import { toHash } from "../utils/crypto";
+
+const FN_LOG_NAME = "get-assertion";
 
 const domainErrorToResponseError = (
   error: DomainError
@@ -82,24 +84,17 @@ export const GetAssertionHandler = (
     assertionRef,
     TE.fromPredicate(
       ar => ar === authJwtPayload.assertionRef,
-      () => {
-        const errorDetail = `jwt assertion_ref does not match the one in path`;
-        logger.trackEvent({
-          name: "lollipop.error.get-assertion",
-          properties: {
-            assertion_ref: assertionRef,
-            error: errorDetail as NonEmptyString,
-            operation_id: authJwtPayload.operationId,
-            subscription_id: apiAuth.subscriptionId
-          }
-        });
-        return logAndReturnResponse(
-          context,
-          ResponseErrorForbiddenNotAuthorized,
-          errorDetail
-        );
-      }
+      () => ResponseErrorForbiddenNotAuthorized
     ),
+    eventLog.taskEither.errorLeft(errorResponse => [
+      `${errorResponse.detail} | jwt assertion_ref does not match the one in path`,
+      {
+        assertion_ref: assertionRef,
+        name: FN_LOG_NAME,
+        operation_id: authJwtPayload.operationId,
+        subscription_id: apiAuth.subscriptionId
+      }
+    ]),
     TE.chainW(
       flow(
         publicKeyDocumentReader,
