@@ -13,7 +13,6 @@ import {
   withRequestMiddlewares,
   wrapRequestHandler
 } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
-import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
 import {
   IResponseErrorForbiddenNotAuthorized,
@@ -26,8 +25,6 @@ import {
   ResponseErrorInternal,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
-
-import { Context } from "@azure/functions";
 
 import { eventLog, defaultLog } from "@pagopa/winston-ts";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
