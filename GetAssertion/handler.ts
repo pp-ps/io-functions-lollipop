@@ -103,12 +103,10 @@ export const GetAssertionHandler = (
             }`
         ),
         TE.mapLeft(domainErrorToResponseError),
-        TE.chainW(
-          flow(
-            TE.fromPredicate(isNotPendingLollipopPubKey, () =>
-              ResponseErrorInternal("Unexpected status on pubKey document")
-            ),
-            defaultLog.taskEither.errorLeft(
+        TE.filterOrElseW(isNotPendingLollipopPubKey, () =>
+          pipe(
+            ResponseErrorInternal("Unexpected status on pubKey document"),
+            defaultLog.peek.error(
               `Unexpected ${PubKeyStatusEnum.PENDING} status on pubKey document`
             )
           )

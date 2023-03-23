@@ -1016,10 +1016,10 @@
     semver "^7.3.7"
     validator "^13.7.0"
 
-"@pagopa/winston-ts@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@pagopa/winston-ts/-/winston-ts-2.1.0.tgz#2a50d24e7dd8b8993611d1405e9aadf2f24f7735"
-  integrity sha512-UnvXRCEciegIKDbwFR2goyNkUjjaWrfgv009/sG2RyIuiXYJXiAXx1VrBuruz616tJaKSoqMc9WT/FRvwhwkjg==
+"@pagopa/winston-ts@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/winston-ts/-/winston-ts-2.2.0.tgz#d930dfd478397d395fd778bb0f77c75f3e0db346"
+  integrity sha512-+S/0j6goW/o8DCCke+zFt/grxmohmZBLId5Z+bkZX5YSp+SJ9GGQq9awfuWdZLe3oK9HJYgG4pkgPZubjlzvzA==
   dependencies:
     fp-ts "^2.10.5"
     io-ts "^2.2.16"

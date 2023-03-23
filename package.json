@@ -65,7 +65,7 @@
     "@pagopa/io-functions-commons": "^27.6.0",
     "@pagopa/openapi-codegen-ts": "^12.2.0",
     "@pagopa/ts-commons": "^10.3.0",
-    "@pagopa/winston-ts": "^2.1.0",
+    "@pagopa/winston-ts": "^2.2.0",
     "applicationinsights": "^1.7.4",
     "azure-storage": "^2.10.3",
     "date-fns": "^2.29.3",
