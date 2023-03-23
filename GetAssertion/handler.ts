@@ -29,7 +29,7 @@ import {
 
 import { Context } from "@azure/functions";
 
-import { eventLog } from "@pagopa/winston-ts";
+import { eventLog, defaultLog } from "@pagopa/winston-ts";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
@@ -37,9 +37,8 @@ import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus
 import { AssertionReader, PublicKeyDocumentReader } from "../utils/readers";
 import { AuthJWT, verifyJWTMiddleware } from "../utils/auth_jwt";
 import { isNotPendingLollipopPubKey } from "../utils/lollipopKeys";
-import { DomainError, ErrorKind, logAndReturnResponse } from "../utils/errors";
+import { DomainError, ErrorKind } from "../utils/errors";
 import { JWTConfig } from "../utils/config";
-import { ILogger } from "../utils/logger";
 import { toHash } from "../utils/crypto";
 
 const FN_LOG_NAME = "get-assertion";
@@ -56,7 +55,6 @@ const domainErrorToResponseError = (
  */
 
 type IGetAssertionHandler = (
-  context: Context,
   auth: IAzureApiAuthorization,
   assertionRef: AssertionRef,
   authJwtPayload: AuthJWT
@@ -72,10 +70,8 @@ type IGetAssertionHandler = (
  */
 export const GetAssertionHandler = (
   publicKeyDocumentReader: PublicKeyDocumentReader,
-  assertionReader: AssertionReader,
-  logger: ILogger
+  assertionReader: AssertionReader
 ): IGetAssertionHandler => async (
-  context,
   apiAuth,
   assertionRef,
   authJwtPayload
@@ -98,22 +94,23 @@ export const GetAssertionHandler = (
     TE.chainW(
       flow(
         publicKeyDocumentReader,
-        TE.mapLeft(error =>
-          logAndReturnResponse(
-            context,
-            domainErrorToResponseError(error),
+        defaultLog.taskEither.errorLeft(
+          error =>
             `Error while reading pop document: ${
               error.kind === ErrorKind.Internal
-                ? ` ${error.message}`
+                ? ` ${error.message} | ${error.detail}`
                 : error.kind
             }`
-          )
         ),
-        TE.filterOrElseW(isNotPendingLollipopPubKey, () =>
-          logAndReturnResponse(
-            context,
-            ResponseErrorInternal("Unexpected status on pubKey document"),
-            `Unexpected ${PubKeyStatusEnum.PENDING} status on pubKey document`
+        TE.mapLeft(domainErrorToResponseError),
+        TE.chainW(
+          flow(
+            TE.fromPredicate(isNotPendingLollipopPubKey, () =>
+              ResponseErrorInternal("Unexpected status on pubKey document")
+            ),
+            defaultLog.taskEither.errorLeft(
+              `Unexpected ${PubKeyStatusEnum.PENDING} status on pubKey document`
+            )
           )
         )
       )
@@ -121,37 +118,32 @@ export const GetAssertionHandler = (
     TE.chainW(({ assertionFileName, fiscalCode }) =>
       pipe(
         assertionReader(assertionFileName),
-        TE.mapLeft(error =>
-          logAndReturnResponse(
-            context,
-            domainErrorToResponseError(error),
+        defaultLog.taskEither.errorLeft(
+          error =>
             `Error while reading assertion from blob storage: ${
               error.kind === ErrorKind.Internal
-                ? `${error.message}`
+                ? `${error.message} | ${error.detail}`
                 : error.kind
             }`
-          )
         ),
+        TE.mapLeft(domainErrorToResponseError),
         // TODO: add OIDC assertion type management
         TE.map(assertion =>
           ResponseSuccessJson({
             response_xml: assertion
           })
         ),
-        TE.map(response =>
-          pipe(
-            logger.trackEvent({
-              name: "lollipop.info.get-assertion",
-              properties: {
-                assertion_ref: assertionRef,
-                fiscal_code: toHash(fiscalCode),
-                operation_id: authJwtPayload.operationId,
-                subscription_id: apiAuth.subscriptionId
-              }
-            }),
-            () => response
-          )
-        )
+
+        eventLog.taskEither.info(() => [
+          `Assertion ${assertionRef} returned to service ${apiAuth.subscriptionId}`,
+          {
+            assertion_ref: assertionRef,
+            fiscal_code: toHash(fiscalCode),
+            name: FN_LOG_NAME,
+            operation_id: authJwtPayload.operationId,
+            subscription_id: apiAuth.subscriptionId
+          }
+        ])
       )
     ),
     TE.toUnion
@@ -164,16 +156,10 @@ export const GetAssertionHandler = (
 export function GetAssertion(
   jwtConfig: JWTConfig,
   publicKeyDocumentReader: PublicKeyDocumentReader,
-  assertionReader: AssertionReader,
-  logger: ILogger
+  assertionReader: AssertionReader
 ): express.RequestHandler {
-  const handler = GetAssertionHandler(
-    publicKeyDocumentReader,
-    assertionReader,
-    logger
-  );
+  const handler = GetAssertionHandler(publicKeyDocumentReader, assertionReader);
   const middlewaresWrap = withRequestMiddlewares(
-    ContextMiddleware(),
     AzureApiAuthMiddleware(new Set([UserGroup.ApiLollipopAssertionRead])),
     RequiredParamMiddleware("assertion_ref", AssertionRef),
     verifyJWTMiddleware(jwtConfig)

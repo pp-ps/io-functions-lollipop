@@ -21,7 +21,6 @@ import {
   getAssertionReader,
   getPublicKeyDocumentReader
 } from "../utils/readers";
-import { createLogger } from "../utils/logger";
 import { initTelemetryClient } from "../utils/appinsights";
 
 import { GetAssertion } from "./handler";
@@ -67,8 +66,7 @@ app.get(
     getAssertionReader(
       assertionBlobService,
       config.LOLLIPOP_ASSERTION_STORAGE_CONTAINER_NAME
-    ),
-    createLogger(telemetryClient)
+    )
   )
 );
 
