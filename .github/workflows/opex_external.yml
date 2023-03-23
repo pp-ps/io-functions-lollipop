@@ -5,7 +5,7 @@ on:
   push:
     branches:
       # - master
-      - opex-demo
+      - IOCIT-353--add-opex-dashboard
     paths:
       - "openapi/external.yaml"
       - ".github/workflows/opex_external.yml"
