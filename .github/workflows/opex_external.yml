@@ -4,8 +4,7 @@ name: Opex Dashboard function lollipop external
 on:
   push:
     branches:
-      # - master
-      - IOCIT-353--add-opex-dashboard
+      - master
     paths:
       - "external.yaml"
       - "openapi/external.yaml"
