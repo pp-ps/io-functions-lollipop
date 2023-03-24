@@ -62,3 +62,7 @@ azure-functions-core-tools
 .history
 
 docker-compose.override.yml
+
+# Opex
+!.opex/**/env
+!.identity/env
