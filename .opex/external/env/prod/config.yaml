@@ -11,4 +11,3 @@ overrides:
     - api.io.pagopa.it
     - api.io.italia.it
     - api-app.internal.io.pagopa.it
-    - api-mtls.io.pagopa.it
