@@ -19,6 +19,7 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as A from "fp-ts/Apply";
 import * as R from "fp-ts/Record";
 import { isDefined } from "@pagopa/io-functions-commons/dist/src/utils/types";
+import { eventLog, defaultLog } from "@pagopa/winston-ts";
 import { encodeBase64 } from "../utils/thumbprint";
 import { MASTER_HASH_ALGO } from "../utils/lollipopKeys";
 import { NewPubKey } from "../generated/definitions/internal/NewPubKey";
@@ -31,6 +32,8 @@ import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus
 import { getAllAssertionsRef } from "../utils/lollipopKeys";
 import { AssertionRef } from "../generated/definitions/external/AssertionRef";
 import { JwkPubKey } from "../generated/definitions/internal/JwkPubKey";
+
+const FN_LOG_NAME = "reserve-pubkey";
 
 type IReservePubKeyHandler = (
   inputPubkeys: NewPubKeyPayload
@@ -78,6 +81,12 @@ export const reservePubKeys = (
       inputPubkeys.algo,
       inputPubkeys.pub_key
     ),
+    eventLog.taskEither.errorLeft(error => [
+      `${FN_LOG_NAME} | ${error.name} - ${error.message}`,
+      {
+        name: FN_LOG_NAME
+      }
+    ]),
     TE.mapLeft(err => ResponseErrorInternal(err.message)),
     TE.chain(
       flow(
@@ -103,6 +112,12 @@ export const reservePubKeys = (
         newPubKey
       )
     ),
+    eventLog.taskEither.errorLeft(error => [
+      `${FN_LOG_NAME} | ${error.kind} ${error.detail}`,
+      {
+        name: FN_LOG_NAME
+      }
+    ]),
     TE.toUnion
   )();
 
