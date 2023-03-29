@@ -20,6 +20,12 @@ import {
 } from "../../__mocks__/lollipopkeysMock";
 import * as handler from "../handler";
 import { AssertionRef } from "../../generated/definitions/external/AssertionRef";
+import { contextMock } from "../../__mocks__/context.mock";
+import { useWinstonFor } from "@pagopa/winston-ts";
+import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
+import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
+import { AzureContextTransport } from "@pagopa/io-functions-commons/dist/src/utils/logging";
+import { TelemetryClient } from "applicationinsights";
 
 const mockCreatePendingLollipop = (pendingLollipop: PendingLolliPopPubKeys) =>
   Promise.resolve({
@@ -30,6 +36,33 @@ const mockCreatePendingLollipop = (pendingLollipop: PendingLolliPopPubKeys) =>
       ttl: TTL_VALUE_FOR_RESERVATION,
       version: 0 as NonNegativeInteger
     }
+  });
+
+  const FN_LOG_NAME = "reserve-pubkey";
+
+  const loggerMock = {
+    trackEvent: jest.fn(e => {
+      return void 0;
+    })
+  };
+  
+  const azureContextTransport = new AzureContextTransport(
+    () => contextMock.log,
+    {}
+  );
+  useWinstonFor({
+    loggerId: LoggerId.event,
+    transports: [
+      withApplicationInsight(
+        (loggerMock as unknown) as TelemetryClient,
+        "lollipop"
+      ),
+      azureContextTransport
+    ]
+  });
+  useWinstonFor({
+    loggerId: LoggerId.default,
+    transports: [azureContextTransport]
   });
 
 describe("reserveSingleKey", () => {
@@ -73,6 +106,16 @@ describe("reserveSingleKey", () => {
       model,
       pubKey.pub_key
     )(assertionRef)();
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.reserve-pubkey",
+      properties: {
+        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -146,6 +189,17 @@ describe("reservePubKeys", () => {
     const model = new LolliPOPKeysModel(mockedContainer.container);
     const pubKey = aSha512PubKey;
     const result = await handler.reservePubKeys(model)(pubKey);
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.reserve-pubkey",
+      properties: {
+        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(mockedContainer.mock.create).toHaveBeenCalledTimes(1);
     expect(result).toEqual(
       expect.objectContaining({
@@ -164,6 +218,17 @@ describe("reservePubKeys", () => {
       algo: JwkPubKeyHashAlgorithmEnum.sha256
     };
     const result = await handler.reservePubKeys(model)(pubKey);
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.reserve-pubkey",
+      properties: {
+        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(mockedContainer.mock.create).toHaveBeenCalledTimes(2);
     expect(result).toEqual(
       expect.objectContaining({

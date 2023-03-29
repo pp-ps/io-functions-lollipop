@@ -68,6 +68,12 @@ export const reserveSingleKey = (
     pendingPubKey =>
       pipe(
         lollipopPubkeysModel.create(pendingPubKey),
+        eventLog.taskEither.errorLeft(error => [
+          `${FN_LOG_NAME} | ${error.kind}`,
+          {
+            name: FN_LOG_NAME
+          }
+        ]),
         TE.mapLeft(cosmosErrorsToResponse)
       )
   );
