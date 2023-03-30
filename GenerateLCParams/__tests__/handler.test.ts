@@ -1,5 +1,11 @@
 import * as date_fns from "date-fns";
 
+import { useWinstonFor } from "@pagopa/winston-ts";
+import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
+
+import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
+import { AzureContextTransport } from "@pagopa/io-functions-commons/dist/src/utils/logging";
+
 import * as TE from "fp-ts/lib/TaskEither";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -22,7 +28,23 @@ import {
   aPendingLolliPopPubKeys,
   aRetrievedLolliPopPubKeys
 } from "../../__mocks__/lollipopkeysMock";
-import { contextMock } from "../../__mocks__/context.mock";
+import { contextMock, telemetryClientMock } from "../../__mocks__/context.mock";
+
+const azureContextTransport = new AzureContextTransport(
+  () => contextMock.log,
+  {}
+);
+useWinstonFor({
+  loggerId: LoggerId.event,
+  transports: [
+    withApplicationInsight(telemetryClientMock, "lollipop"),
+    azureContextTransport
+  ]
+});
+useWinstonFor({
+  loggerId: LoggerId.default,
+  transports: [azureContextTransport]
+});
 
 const anAuthJwt = "anAuthJwt" as NonEmptyString;
 const defaultGracePeriod = 30 as NonNegativeInteger;
@@ -62,8 +84,9 @@ describe("GenerateLCParamsHandler", () => {
   });
 
   it("GIVEN a valid input WHEN retrieve operation on cosmos fail THEN it should return an Internal server error", async () => {
+    const errorDetails = "an Error Detail";
     publicKeyDocumentReaderMock.mockImplementationOnce(() =>
-      TE.left({ kind: ErrorKind.Internal, detail: "COSMOS_ERROR_RESPONSE" })
+      TE.left({ kind: ErrorKind.Internal, detail: errorDetails })
     );
     const result = await GenerateLCParamsHandler(
       publicKeyDocumentReaderMock,
@@ -71,12 +94,16 @@ describe("GenerateLCParamsHandler", () => {
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
-    expect(contextMock.log.error).toHaveBeenCalledTimes(0);
+    expect(contextMock.log.error).toHaveBeenCalledTimes(1);
+    expect(contextMock.log.error).toHaveBeenCalledWith(
+      `Error retrieving assertionRef ${anAssertionRef} from Cosmos: ${ErrorKind.Internal} [${errorDetails}]`
+    );
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(0);
 
     expect(result).toEqual(
       expect.objectContaining({
         kind: "IResponseErrorInternal",
-        detail: expect.stringContaining("COSMOS_ERROR_RESPONSE")
+        detail: expect.stringContaining(errorDetails)
       })
     );
   });
@@ -91,7 +118,11 @@ describe("GenerateLCParamsHandler", () => {
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
-    expect(contextMock.log.error).toHaveBeenCalledTimes(0);
+    expect(contextMock.log.error).toHaveBeenCalledTimes(1);
+    expect(contextMock.log.error).toHaveBeenCalledWith(
+      `Error retrieving assertionRef ${anAssertionRef} from Cosmos: ${ErrorKind.NotFound}`
+    );
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(0);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -112,8 +143,9 @@ describe("GenerateLCParamsHandler", () => {
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
     expect(contextMock.log.error).toHaveBeenCalledTimes(1);
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(0);
     expect(contextMock.log.error).toHaveBeenCalledWith(
-      `You are not allowed here: You do not have enough permission to complete the operation you requested | Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${aPendingLolliPopPubKeys.status}`
+      `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${aPendingLolliPopPubKeys.status}`
     );
 
     expect(result).toEqual(
@@ -136,10 +168,21 @@ describe("GenerateLCParamsHandler", () => {
       anAuthJwtGeneratorMock
     )(contextMock, anAssertionRef, aValidGenerateLcParamsPayload);
 
+    const expectedMessage = `Pop document expired at ${anExpiredOutOfGracePeriodDate} with grace period of ${defaultGracePeriod} days`;
     expect(contextMock.log.error).toHaveBeenCalledTimes(1);
-    expect(contextMock.log.error).toHaveBeenCalledWith(
-      `You are not allowed here: You do not have enough permission to complete the operation you requested | Pop document expired at ${anExpiredOutOfGracePeriodDate} with grace period of ${defaultGracePeriod} days`
-    );
+    expect(contextMock.log.error).toHaveBeenCalledWith(expectedMessage);
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(1);
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.generate-lc-params",
+      properties: {
+        assertion_ref: anAssertionRef,
+        message: expectedMessage,
+        operation_id: aValidGenerateLcParamsPayload.operation_id
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -173,6 +216,7 @@ describe("GenerateLCParamsHandler", () => {
     expect(contextMock.log.error).toHaveBeenCalledWith(
       `Internal server error: Cannot generate LC Auth JWT|ERROR=${errorMsg}`
     );
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(0);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -200,6 +244,22 @@ describe("GenerateLCParamsHandler", () => {
     });
 
     expect(contextMock.log.error).toHaveBeenCalledTimes(0);
+    expect(contextMock.log.info).toHaveBeenCalledTimes(1);
+    expect(contextMock.log.info).toHaveBeenCalledWith(
+      `LC Params successfully generated for assertionRef ${anAssertionRef} and operationId ${aValidGenerateLcParamsPayload.operation_id}`
+    );
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(1);
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.info.generate-lc-params",
+      properties: {
+        assertion_ref: anAssertionRef,
+        message: `LC Params successfully generated for assertionRef ${anAssertionRef} and operationId ${aValidGenerateLcParamsPayload.operation_id}`,
+        operation_id: aValidGenerateLcParamsPayload.operation_id
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -224,6 +284,22 @@ describe("GenerateLCParamsHandler", () => {
     });
 
     expect(contextMock.log.error).toHaveBeenCalledTimes(0);
+    expect(contextMock.log.info).toHaveBeenCalledTimes(1);
+    expect(contextMock.log.info).toHaveBeenCalledWith(
+      `LC Params successfully generated for assertionRef ${anAssertionRef} and operationId ${aValidGenerateLcParamsPayload.operation_id}`
+    );
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledTimes(1);
+    expect(telemetryClientMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.info.generate-lc-params",
+      properties: {
+        assertion_ref: anAssertionRef,
+        message: `LC Params successfully generated for assertionRef ${anAssertionRef} and operationId ${aValidGenerateLcParamsPayload.operation_id}`,
+        operation_id: aValidGenerateLcParamsPayload.operation_id
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(result).toEqual(
       expect.objectContaining({

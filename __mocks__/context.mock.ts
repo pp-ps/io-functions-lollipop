@@ -1,4 +1,5 @@
 import { Context } from "@azure/functions";
+import { TelemetryClient } from "applicationinsights";
 
 export const contextMock = ({
   log: {
@@ -9,3 +10,7 @@ export const contextMock = ({
   },
   executionContext: {}
 } as unknown) as Context;
+
+export const telemetryClientMock = ({
+  trackEvent: jest.fn()
+} as unknown) as TelemetryClient;
