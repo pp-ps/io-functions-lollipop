@@ -19,7 +19,7 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as A from "fp-ts/Apply";
 import * as R from "fp-ts/Record";
 import { isDefined } from "@pagopa/io-functions-commons/dist/src/utils/types";
-import { eventLog, defaultLog } from "@pagopa/winston-ts";
+import { eventLog } from "@pagopa/winston-ts";
 import { encodeBase64 } from "../utils/thumbprint";
 import { MASTER_HASH_ALGO } from "../utils/lollipopKeys";
 import { NewPubKey } from "../generated/definitions/internal/NewPubKey";
