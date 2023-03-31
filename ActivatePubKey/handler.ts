@@ -65,7 +65,7 @@ export const activatePubKeyForAssertionRef = (
     eventLog.taskEither.errorLeft(error => [
       `${FN_LOG_NAME} | Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`,
       {
-        assertion_filename: assertionFileName,
+        master_assertion_ref: assertionRef,
         name: FN_LOG_NAME
       }
     ]),
