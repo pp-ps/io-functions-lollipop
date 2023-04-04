@@ -568,7 +568,7 @@ describe("ActivatePubKey - Errors", () => {
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.activate-pubkey",
       properties: {
-        master_assertion_ref: aValidSha512AssertionRef,
+        assertion_ref: aValidSha512AssertionRef,
         message: `${FN_LOG_NAME} | Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
       },
       tagOverrides: {
@@ -631,7 +631,7 @@ describe("ActivatePubKey - Errors", () => {
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.activate-pubkey",
       properties: {
-        assertion_filename: `${aFiscalCode}-${aValidSha256AssertionRef}`,
+        assertion_ref: aValidSha256AssertionRef,
         message: `${FN_LOG_NAME} | Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
       },
       tagOverrides: {
