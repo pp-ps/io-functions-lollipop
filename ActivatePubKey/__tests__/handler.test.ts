@@ -298,7 +298,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Error while reading pop document: ${ErrorKind.NotFound}`
+        message: `Error while reading pop document: ${ErrorKind.NotFound}`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -345,7 +345,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Unexpected status on pop document during activation: ${PubKeyStatusEnum.REVOKED}`
+        message: `Unexpected status on pop document during activation: ${PubKeyStatusEnum.REVOKED}`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -390,7 +390,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Error while reading pop document: ${ErrorKind.Internal}`
+        message: `Error while reading pop document: ${ErrorKind.Internal}`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -426,7 +426,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Could not decode assertionFileName | value \"invalid_fiscal_code-sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg\" at root is not a valid [string that matches the pattern \"^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]-(sha256-[A-Za-z0-9-_=]{1,44}|sha384-[A-Za-z0-9-_=]{1,66}|sha512-[A-Za-z0-9-_=]{1,88})$\"]`
+        message: `Could not decode assertionFileName`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -436,7 +436,7 @@ describe("ActivatePubKey - Errors", () => {
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
       detail:
-        'Internal server error: Could not decode assertionFileName | value "invalid_fiscal_code-sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg" at root is not a valid [string that matches the pattern "^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]-(sha256-[A-Za-z0-9-_=]{1,44}|sha384-[A-Za-z0-9-_=]{1,66}|sha512-[A-Za-z0-9-_=]{1,88})$"]'
+        'Internal server error: Could not decode assertionFileName'
     });
 
     expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
@@ -471,7 +471,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | an Error on storage`
+        message: `an Error on storage`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -525,7 +525,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Could not decode public key | value \"\" at root is not a valid [JwkPublicKeyFromToken]`
+        message: `Could not decode public key | value \"\" at root is not a valid [JwkPublicKeyFromToken]`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -569,7 +569,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha512AssertionRef,
-        message: `${FN_LOG_NAME} | Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
+        message: `Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -632,7 +632,7 @@ describe("ActivatePubKey - Errors", () => {
       name: "lollipop.error.activate-pubkey",
       properties: {
         assertion_ref: aValidSha256AssertionRef,
-        message: `${FN_LOG_NAME} | Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
+        message: `Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
       },
       tagOverrides: {
         samplingEnabled: "false"
