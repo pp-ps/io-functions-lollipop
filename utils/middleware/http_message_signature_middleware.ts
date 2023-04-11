@@ -23,10 +23,10 @@ import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
 import { getAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
+import * as crypto from "@pagopa/io-functions-commons/dist/src/utils/crypto";
 import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
-import * as crypto from "../crypto";
 import { customVerify } from "../httpSignature.verifiers";
 
 export const LollipopHeadersForSignature = t.intersection([
