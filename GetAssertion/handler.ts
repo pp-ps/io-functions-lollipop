@@ -27,6 +27,7 @@ import {
 } from "@pagopa/ts-commons/lib/responses";
 
 import { eventLog, defaultLog } from "@pagopa/winston-ts";
+import { sha256 } from "@pagopa/io-functions-commons/dist/src/utils/crypto";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LCUserInfo } from "../generated/definitions/external/LCUserInfo";
 import { PubKeyStatusEnum } from "../generated/definitions/internal/PubKeyStatus";
@@ -36,7 +37,6 @@ import { AuthJWT, verifyJWTMiddleware } from "../utils/auth_jwt";
 import { isNotPendingLollipopPubKey } from "../utils/lollipopKeys";
 import { DomainError, ErrorKind } from "../utils/errors";
 import { JWTConfig } from "../utils/config";
-import { toHash } from "../utils/crypto";
 
 const FN_LOG_NAME = "get-assertion";
 
@@ -133,7 +133,7 @@ export const GetAssertionHandler = (
           `Assertion ${assertionRef} returned to service ${apiAuth.subscriptionId}`,
           {
             assertion_ref: assertionRef,
-            fiscal_code: toHash(fiscalCode),
+            fiscal_code: sha256(fiscalCode),
             name: FN_LOG_NAME,
             operation_id: authJwtPayload.operationId,
             subscription_id: apiAuth.subscriptionId

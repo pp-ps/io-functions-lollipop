@@ -20,7 +20,7 @@ import {
 } from "../../__mocks__/lollipopPubKey.mock";
 import { PubKeyStatusEnum } from "../../generated/definitions/internal/PubKeyStatus";
 import { ErrorKind } from "../../utils/errors";
-import { toHash } from "../../utils/crypto";
+import { sha256 } from "@pagopa/io-functions-commons/dist/src/utils/crypto";
 import { useWinstonFor } from "@pagopa/winston-ts";
 import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
 import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
@@ -115,7 +115,7 @@ describe("GetAssertionHandler - Success", () => {
         name: "lollipop.info.get-assertion",
         properties: {
           assertion_ref: aValidSha256AssertionRef,
-          fiscal_code: toHash(aRetrievedValidLollipopPubKeySha256.fiscalCode),
+          fiscal_code: sha256(aRetrievedValidLollipopPubKeySha256.fiscalCode),
           message: `Assertion ${aValidSha256AssertionRef} returned to service ${auth.subscriptionId}`,
           operation_id: aValidDecodedAuthJWT.operationId,
           subscription_id: auth.subscriptionId
