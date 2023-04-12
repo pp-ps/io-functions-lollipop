@@ -157,18 +157,18 @@ export const ActivatePubKeyHandler = (
         popDocument.pubKey,
         JwkPublicKeyFromToken.decode,
         TE.fromEither,
-        eventLog.taskEither.errorLeft(errors => [
-          `Could not decode public key | ${readableReportSimplified(errors)}`,
+        TE.mapLeft(
+          errors =>
+            `Could not decode public key | ${readableReportSimplified(errors)}`
+        ),
+        eventLog.taskEither.errorLeft(err => [
+          err,
           {
             assertion_ref,
             name: FN_LOG_NAME
           }
         ]),
-        TE.mapLeft(errors =>
-          ResponseErrorInternal(
-            `Could not decode public key | ${readableReportSimplified(errors)}`
-          )
-        )
+        TE.mapLeft(ResponseErrorInternal)
       )
     ),
     TE.bindW("assertionRefs", ({ popDocument, jwkPubKeyFromString }) =>
