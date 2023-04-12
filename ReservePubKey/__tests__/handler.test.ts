@@ -38,32 +38,32 @@ const mockCreatePendingLollipop = (pendingLollipop: PendingLolliPopPubKeys) =>
     }
   });
 
-  const FN_LOG_NAME = "reserve-pubkey";
+const FN_LOG_NAME = "reserve-pubkey";
 
-  const loggerMock = {
-    trackEvent: jest.fn(e => {
-      return void 0;
-    })
-  };
-  
-  const azureContextTransport = new AzureContextTransport(
-    () => contextMock.log,
-    {}
-  );
-  useWinstonFor({
-    loggerId: LoggerId.event,
-    transports: [
-      withApplicationInsight(
-        (loggerMock as unknown) as TelemetryClient,
-        "lollipop"
-      ),
-      azureContextTransport
-    ]
-  });
-  useWinstonFor({
-    loggerId: LoggerId.default,
-    transports: [azureContextTransport]
-  });
+const loggerMock = {
+  trackEvent: jest.fn(e => {
+    return void 0;
+  })
+};
+
+const azureContextTransport = new AzureContextTransport(
+  () => contextMock.log,
+  {}
+);
+useWinstonFor({
+  loggerId: LoggerId.event,
+  transports: [
+    withApplicationInsight(
+      (loggerMock as unknown) as TelemetryClient,
+      "lollipop"
+    ),
+    azureContextTransport
+  ]
+});
+useWinstonFor({
+  loggerId: LoggerId.default,
+  transports: [azureContextTransport]
+});
 
 describe("reserveSingleKey", () => {
   test("GIVEN a working model WHEN reserve a pub_key THEN call the cosmos create and return the RetriveLollipop", async () => {
@@ -107,15 +107,7 @@ describe("reserveSingleKey", () => {
       pubKey.pub_key
     )(assertionRef)();
 
-    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
-      name: "lollipop.error.reserve-pubkey",
-      properties: {
-        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
-      },
-      tagOverrides: {
-        samplingEnabled: "false"
-      }
-    });
+    expect(loggerMock.trackEvent).toHaveBeenCalledTimes(0);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -193,7 +185,9 @@ describe("reservePubKeys", () => {
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.reserve-pubkey",
       properties: {
-        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
+        message: `IResponseErrorInternal - Internal server error: ${JSON.stringify(
+          { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
+        )}`
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -222,7 +216,9 @@ describe("reservePubKeys", () => {
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.reserve-pubkey",
       properties: {
-        message: `${FN_LOG_NAME} | COSMOS_ERROR_RESPONSE`,
+        message: `IResponseErrorInternal - Internal server error: ${JSON.stringify(
+          { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
+        )}`
       },
       tagOverrides: {
         samplingEnabled: "false"

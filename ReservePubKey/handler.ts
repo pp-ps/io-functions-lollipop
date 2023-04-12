@@ -68,12 +68,6 @@ export const reserveSingleKey = (
     pendingPubKey =>
       pipe(
         lollipopPubkeysModel.create(pendingPubKey),
-        eventLog.taskEither.errorLeft(error => [
-          `${FN_LOG_NAME} | ${error.kind}`,
-          {
-            name: FN_LOG_NAME
-          }
-        ]),
         TE.mapLeft(cosmosErrorsToResponse)
       )
   );
@@ -88,7 +82,7 @@ export const reservePubKeys = (
       inputPubkeys.pub_key
     ),
     eventLog.taskEither.errorLeft(error => [
-      `${FN_LOG_NAME} | ${error.name} - ${error.message}`,
+      `${error.name} - ${error.message}`,
       {
         name: FN_LOG_NAME
       }
@@ -98,7 +92,13 @@ export const reservePubKeys = (
       flow(
         R.filter(isDefined),
         R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
-        A.sequenceS(TE.ApplicativePar)
+        A.sequenceS(TE.ApplicativePar),
+        eventLog.taskEither.errorLeft(error => [
+          `${error.kind} - ${error.detail}`,
+          {
+            name: FN_LOG_NAME
+          }
+        ])
       )
     ),
     TE.map(reservedKeys =>
@@ -118,12 +118,6 @@ export const reservePubKeys = (
         newPubKey
       )
     ),
-    eventLog.taskEither.errorLeft(error => [
-      `${FN_LOG_NAME} | ${error.kind} ${error.detail}`,
-      {
-        name: FN_LOG_NAME
-      }
-    ]),
     TE.toUnion
   )();
 
