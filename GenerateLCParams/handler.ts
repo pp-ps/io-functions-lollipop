@@ -1,4 +1,7 @@
 import * as express from "express";
+import { Context } from "@azure/functions";
+
+import { defaultLog, eventLog } from "@pagopa/winston-ts";
 
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
 import { RequiredBodyPayloadMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_body_payload";
@@ -18,7 +21,6 @@ import {
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 
-import { Context } from "@azure/functions";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
 import * as TE from "fp-ts/lib/TaskEither";
@@ -36,10 +38,9 @@ import {
   retrievedLollipopKeysToApiLcParams
 } from "../utils/lollipopKeys";
 import { PublicKeyDocumentReader } from "../utils/readers";
-import {
-  domainErrorToResponseError,
-  logAndReturnResponse
-} from "../utils/errors";
+import { domainErrorToResponseError, ErrorKind } from "../utils/errors";
+
+const FN_LOG_NAME = "generate-lc-params";
 
 /**
  * Type of a GenerateLCParams handler
@@ -70,12 +71,23 @@ export const GenerateLCParamsHandler = (
 ): ReturnType<IGenerateLCParamsHandler> =>
   pipe(
     publicKeyDocumentReader(assertionRef),
+    defaultLog.taskEither.errorLeft(
+      domainError =>
+        `Error retrieving assertionRef ${assertionRef} from Cosmos: ${
+          domainError.kind
+        }${
+          domainError.kind === ErrorKind.Internal
+            ? ` [${domainError.detail}]`
+            : ""
+        }`
+    ),
     TE.mapLeft(domainErrorToResponseError),
     TE.filterOrElseW(isValidLollipopPubKey, doc =>
-      logAndReturnResponse(
-        context,
+      pipe(
         ResponseErrorForbiddenNotAuthorized,
-        `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${doc.status}`
+        defaultLog.peek.error(
+          `Unexpected status on pop document: expected ${PubKeyStatusEnum.VALID}, found ${doc.status}`
+        )
       )
     ),
     TE.filterOrElseW(
@@ -83,10 +95,16 @@ export const GenerateLCParamsHandler = (
         usedPubKeyDocument.expiredAt.getTime() >
         dateUtils.addDays(new Date(), -expireGracePeriodInDays).getTime(),
       doc =>
-        logAndReturnResponse(
-          context,
+        pipe(
           ResponseErrorForbiddenNotAuthorized,
-          `Pop document expired at ${doc.expiredAt} with grace period of ${expireGracePeriodInDays} days`
+          eventLog.peek.error([
+            `Pop document expired at ${doc.expiredAt} with grace period of ${expireGracePeriodInDays} days`,
+            {
+              assertion_ref: assertionRef,
+              name: FN_LOG_NAME,
+              operation_id: payload.operation_id
+            }
+          ])
         )
     ),
     TE.bindTo("activePubKey"),
@@ -97,12 +115,12 @@ export const GenerateLCParamsHandler = (
           operationId: payload.operation_id
         }),
         TE.mapLeft(e =>
-          logAndReturnResponse(
-            context,
-            ResponseErrorInternal(
-              `Cannot generate LC Auth JWT|ERROR=${e.message}`
-            )
+          ResponseErrorInternal(
+            `Cannot generate LC Auth JWT|ERROR=${e.message}`
           )
+        ),
+        defaultLog.taskEither.errorLeft(
+          r => r.detail ?? "Cannot generate LC Auth JWT"
         )
       )
     ),
@@ -111,6 +129,14 @@ export const GenerateLCParamsHandler = (
         retrievedLollipopKeysToApiLcParams(activePubKey, lcAuthJwt)
       )
     ),
+    eventLog.taskEither.info(() => [
+      `LC Params successfully generated for assertionRef ${assertionRef} and operationId ${payload.operation_id}`,
+      {
+        assertion_ref: assertionRef,
+        name: FN_LOG_NAME,
+        operation_id: payload.operation_id
+      }
+    ]),
     TE.toUnion
   )();
 
