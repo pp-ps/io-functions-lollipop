@@ -1,3 +1,4 @@
+import * as jose from "jose";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import {
@@ -29,9 +30,14 @@ import {
   toEncodedJwk
 } from "../../__mocks__/lollipopPubKey.mock";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
-import { ErrorKind } from "../../utils/errors";
+import { ErrorKind, InternalError } from "../../utils/errors";
 import { contextMock } from "../../__mocks__/context.mock";
 import { AssertionFileName } from "../../generated/definitions/internal/AssertionFileName";
+import { useWinstonFor } from "@pagopa/winston-ts";
+import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
+import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
+import { AzureContextTransport } from "@pagopa/io-functions-commons/dist/src/utils/logging";
+import { TelemetryClient } from "applicationinsights";
 
 const aFiscalCode = "SPNDNL80A13Y555X" as FiscalCode;
 const expiresAtDate = new Date(); // Now
@@ -99,6 +105,33 @@ const aValidPayload: ActivatePubKeyPayload = {
   assertion_type: AssertionTypeEnum.SAML,
   expired_at: expiresAtDate
 };
+
+const FN_LOG_NAME = "activate-pubkey";
+
+const loggerMock = {
+  trackEvent: jest.fn(e => {
+    return void 0;
+  })
+};
+
+const azureContextTransport = new AzureContextTransport(
+  () => contextMock.log,
+  {}
+);
+useWinstonFor({
+  loggerId: LoggerId.event,
+  transports: [
+    withApplicationInsight(
+      (loggerMock as unknown) as TelemetryClient,
+      "lollipop"
+    ),
+    azureContextTransport
+  ]
+});
+useWinstonFor({
+  loggerId: LoggerId.default,
+  transports: [azureContextTransport]
+});
 
 describe("activatePubKey handler", () => {
   beforeEach(() => {
@@ -261,6 +294,17 @@ describe("ActivatePubKey - Errors", () => {
       aValidPayload
     );
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Error while reading pop document: ${ErrorKind.NotFound}`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
       detail:
@@ -297,6 +341,17 @@ describe("ActivatePubKey - Errors", () => {
       aValidPayload
     );
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Unexpected status on pop document during activation: ${PubKeyStatusEnum.REVOKED}`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(res).toMatchObject(
       expect.objectContaining({
         kind: "IResponseErrorForbiddenNotAuthorized"
@@ -331,10 +386,57 @@ describe("ActivatePubKey - Errors", () => {
       aValidPayload
     );
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Error while reading pop document: ${ErrorKind.Internal}`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
       detail:
         "Internal server error: Error while reading pop document: Internal"
+    });
+
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
+      aValidSha256AssertionRef
+    );
+    expect(assertionWriterMock).not.toHaveBeenCalled();
+    expect(popDocumentWriterMock).not.toHaveBeenCalled();
+  });
+
+  it("should return 500 Internal Error when AssertionFileName fail decoding", async () => {
+    const handler = ActivatePubKeyHandler(
+      publicKeyDocumentReaderMock,
+      popDocumentWriterMock,
+      assertionWriterMock
+    );
+
+    const res = await handler(contextMock, aValidSha256AssertionRef, {
+      ...aValidPayload,
+      fiscal_code: "invalid_fiscal_code" as FiscalCode // this will make AssertionFileName decoder fail
+    });
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Could not decode assertionFileName`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
+    expect(res).toMatchObject({
+      kind: "IResponseErrorInternal",
+      detail:
+        'Internal server error: Could not decode assertionFileName'
     });
 
     expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
@@ -365,6 +467,17 @@ describe("ActivatePubKey - Errors", () => {
       aValidPayload
     );
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `an Error on storage`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
       detail: "Internal server error: an Error on storage"
@@ -384,13 +497,16 @@ describe("ActivatePubKey - Errors", () => {
     expect(popDocumentWriterMock).not.toHaveBeenCalled();
   });
 
-  it("should return 500 Internal Error when an error occurred storing master key", async () => {
-    popDocumentWriterMock.mockImplementationOnce(() =>
-      TE.left({
-        kind: ErrorKind.Internal,
-        detail: "an Error on cosmos update",
-        message: "a detail Error on cosmos update"
-      })
+  it("should return 500 Internal Error when JwkPublicKeyFromToken fail decoding", async () => {
+    publicKeyDocumentReaderMock.mockImplementationOnce(
+      () =>
+        TE.of({
+          ...aRetrievedPendingLollipopPubKeySha256,
+          pubKey: "", // this will make JwkPublicKeyFromToken decoder fail
+          assertionRef: aValidSha256AssertionRef,
+          id: `${aValidSha256AssertionRef}-000000`,
+          version: 0
+        }) as ReturnType<PublicKeyDocumentReader>
     );
 
     const handler = ActivatePubKeyHandler(
@@ -404,6 +520,61 @@ describe("ActivatePubKey - Errors", () => {
       aValidSha256AssertionRef,
       aValidPayload
     );
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Could not decode public key | value \"\" at root is not a valid [JwkPublicKeyFromToken]`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
+
+    expect(res).toMatchObject({
+      kind: "IResponseErrorInternal",
+      detail:
+        'Internal server error: Could not decode public key | value "" at root is not a valid [JwkPublicKeyFromToken]'
+    });
+
+    expect(publicKeyDocumentReaderMock).toHaveBeenCalledWith(
+      aValidSha256AssertionRef
+    );
+    expect(popDocumentWriterMock).not.toHaveBeenCalled();
+  });
+
+  it("should return 500 Internal Error when an error occurred storing master key", async () => {
+    const error = {
+      kind: ErrorKind.Internal,
+      detail: "an Error on cosmos update",
+      message: "a detail Error on cosmos update"
+    } as InternalError;
+
+    popDocumentWriterMock.mockImplementationOnce(() => TE.left(error));
+
+    const handler = ActivatePubKeyHandler(
+      publicKeyDocumentReaderMock,
+      popDocumentWriterMock,
+      assertionWriterMock
+    );
+
+    const res = await handler(
+      contextMock,
+      aValidSha256AssertionRef,
+      aValidPayload
+    );
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha512AssertionRef,
+        message: `Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",
@@ -425,6 +596,12 @@ describe("ActivatePubKey - Errors", () => {
   });
 
   it("should return 500 Internal Error when an error occurred storing used key", async () => {
+    const error = {
+      kind: ErrorKind.Internal,
+      detail: "an Error on cosmos update",
+      message: "a detail Error on cosmos update"
+    } as InternalError;
+
     popDocumentWriterMock
       // First insert OK
       .mockImplementationOnce(
@@ -437,13 +614,7 @@ describe("ActivatePubKey - Errors", () => {
           }) as ReturnType<PopDocumentWriter>
       )
       // Second insert KO
-      .mockImplementationOnce(() =>
-        TE.left({
-          kind: ErrorKind.Internal,
-          detail: "an Error on cosmos update",
-          message: "a detail Error on cosmos update"
-        })
-      );
+      .mockImplementationOnce(() => TE.left(error));
 
     const handler = ActivatePubKeyHandler(
       publicKeyDocumentReaderMock,
@@ -456,6 +627,17 @@ describe("ActivatePubKey - Errors", () => {
       aValidSha256AssertionRef,
       aValidPayload
     );
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.activate-pubkey",
+      properties: {
+        assertion_ref: aValidSha256AssertionRef,
+        message: `Error while writing pop document: ${error.kind} - ${error.detail} - ${error.message}`
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(res).toMatchObject({
       kind: "IResponseErrorInternal",

@@ -1,4 +1,3 @@
-import { Context } from "@azure/functions";
 import * as t from "io-ts";
 import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
@@ -6,7 +5,6 @@ import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmos
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import {
-  IResponse,
   IResponseErrorInternal,
   IResponseErrorNotFound,
   ResponseErrorInternal,
@@ -121,17 +119,3 @@ export const domainErrorToResponseError = (
   error.kind === ErrorKind.NotFound
     ? ResponseErrorNotFound(error.kind, "Could not find requested resource")
     : ResponseErrorInternal(error.detail);
-
-/**
- * Log a Response detail and return it
- */
-export const logAndReturnResponse = <R, T extends IResponse<R>>(
-  context: Context,
-  returnValue: T,
-  logDetail?: string
-): T => {
-  context.log.error(
-    `${returnValue.detail}${logDetail ? ` | ${logDetail}` : ""}`
-  );
-  return returnValue;
-};

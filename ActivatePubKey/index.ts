@@ -4,6 +4,10 @@ import { secureExpressApp } from "@pagopa/io-functions-commons/dist/src/utils/ex
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { createBlobService } from "azure-storage";
+import { withApplicationInsight } from "@pagopa/io-functions-commons/dist/src/utils/transports/application_insight";
+import { AzureContextTransport } from "@pagopa/io-functions-commons/dist/src/utils/logging";
+import { useWinstonFor } from "@pagopa/winston-ts";
+import { LoggerId } from "@pagopa/winston-ts/dist/types/logging";
 import {
   LolliPOPKeysModel,
   LOLLIPOPKEYS_COLLECTION_NAME
@@ -12,6 +16,7 @@ import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { getPublicKeyDocumentReader } from "../utils/readers";
 import { getAssertionWriter, getPopDocumentWriter } from "../utils/writers";
+import { initTelemetryClient } from "../utils/appinsights";
 import { ActivatePubKey } from "./handler";
 
 const config = getConfigOrThrow();
@@ -27,6 +32,25 @@ const lollipopKeysModel = new LolliPOPKeysModel(
 const assertionBlobService = createBlobService(
   config.LOLLIPOP_ASSERTION_STORAGE_CONNECTION_STRING
 );
+
+const telemetryClient = initTelemetryClient(
+  config.APPINSIGHTS_INSTRUMENTATIONKEY
+);
+
+// eslint-disable-next-line functional/no-let
+let logger: Context["log"];
+const azureContextTransport = new AzureContextTransport(() => logger, {});
+useWinstonFor({
+  loggerId: LoggerId.event,
+  transports: [
+    withApplicationInsight(telemetryClient, "lollipop"),
+    azureContextTransport
+  ]
+});
+useWinstonFor({
+  loggerId: LoggerId.default,
+  transports: [azureContextTransport]
+});
 
 // Add express route
 app.put(
@@ -44,6 +68,7 @@ app.put(
 const azureFunctionHandler = createAzureFunctionHandler(app);
 
 const httpStart: AzureFunction = (context: Context): void => {
+  logger = context.log;
   setAppContext(app, context);
   azureFunctionHandler(context);
 };
