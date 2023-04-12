@@ -20,7 +20,7 @@ const contextMock = {
   log: {
     error: jest.fn()
   },
-  executionContext: {}
+  executionContext: { retryContext: { retryCount: 1, maxRetryCount: 5 } }
 } as any;
 
 const mockAppinsights = {
@@ -98,7 +98,9 @@ describe("handleRevoke", () => {
       expect.objectContaining({
         properties: expect.objectContaining({
           detail: "PERMANENT",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );
@@ -131,7 +133,9 @@ describe("handleRevoke", () => {
           fatal: "false",
           isSuccess: "false",
           modelId: "",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );
@@ -241,7 +245,9 @@ describe("handleRevoke", () => {
       expect.objectContaining({
         properties: expect.objectContaining({
           detail: "PERMANENT",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );
@@ -281,7 +287,9 @@ describe("handleRevoke", () => {
       expect.objectContaining({
         properties: expect.objectContaining({
           detail: "PERMANENT",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );
@@ -325,7 +333,9 @@ describe("handleRevoke", () => {
       expect.objectContaining({
         properties: expect.objectContaining({
           detail: "TRANSIENT",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );
@@ -364,6 +374,8 @@ describe("handleRevoke", () => {
         properties: expect.objectContaining({
           detail: "TRANSIENT",
           name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5",
           errorMessage: expect.stringContaining(
             "Cannot find a master lollipopPubKey"
           )
@@ -407,7 +419,9 @@ describe("handleRevoke", () => {
           errorMessage: expect.stringContaining(
             "Cannot decode a VALID master lollipopPubKey"
           ),
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "1",
+          maxRetryCount: "5"
         })
       })
     );

@@ -164,14 +164,22 @@ export const handleRevoke = (
       trackException(telemetryClient, {
         exception: new Error(error),
         properties: {
+          /* eslint-disable sort-keys */
           detail: err.kind,
           errorMessage: error,
           fatal: PermanentFailure.is(err).toString(),
           isSuccess: "false",
+          retryCount: String(
+            context.executionContext.retryContext?.retryCount ?? "undefined"
+          ),
+          maxRetryCount: String(
+            context.executionContext.retryContext?.maxRetryCount ?? "undefined"
+          ),
           modelId: err.modelId ?? "",
           name: "lollipop.pubKeys.revoke.failure"
+          /* eslint-enable sort-keys */
         },
-        tagOverrides: { samplingEnabled: String(isTransient) }
+        tagOverrides: { samplingEnabled: "false" }
       });
       context.log.error(error);
       if (isTransient) {
