@@ -94,7 +94,7 @@ export const reservePubKeys = (
         R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
         A.sequenceS(TE.ApplicativePar),
         eventLog.taskEither.errorLeft(error => [
-          `${error.kind} - ${error.detail}`,
+          `Error reserving keys: ${error.detail}`,
           {
             name: FN_LOG_NAME
           }

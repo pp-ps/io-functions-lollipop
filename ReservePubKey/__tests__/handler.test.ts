@@ -66,6 +66,10 @@ useWinstonFor({
 });
 
 describe("reserveSingleKey", () => {
+  beforeEach(async () => {
+    jest.clearAllMocks();
+  });
+
   test("GIVEN a working model WHEN reserve a pub_key THEN call the cosmos create and return the RetriveLollipop", async () => {
     const mockedContainer = mockContainer();
     mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
@@ -121,6 +125,10 @@ describe("reserveSingleKey", () => {
 });
 
 describe("reservePubKeys", () => {
+  beforeEach(async () => {
+    jest.clearAllMocks();
+  });
+
   test("GIVEN a working model WHEN reserve a master pub_key THEN store it and return a redirect containing the assertion ref ", async () => {
     const mockedContainer = mockContainer();
     mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
@@ -182,10 +190,11 @@ describe("reservePubKeys", () => {
     const pubKey = aSha512PubKey;
     const result = await handler.reservePubKeys(model)(pubKey);
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledTimes(1);
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.reserve-pubkey",
       properties: {
-        message: `IResponseErrorInternal - Internal server error: ${JSON.stringify(
+        message: `Error reserving keys: Internal server error: ${JSON.stringify(
           { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
         )}`
       },
@@ -213,10 +222,11 @@ describe("reservePubKeys", () => {
     };
     const result = await handler.reservePubKeys(model)(pubKey);
 
+    expect(loggerMock.trackEvent).toHaveBeenCalledTimes(1);
     expect(loggerMock.trackEvent).toHaveBeenCalledWith({
       name: "lollipop.error.reserve-pubkey",
       properties: {
-        message: `IResponseErrorInternal - Internal server error: ${JSON.stringify(
+        message: `Error reserving keys: Internal server error: ${JSON.stringify(
           { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
         )}`
       },
