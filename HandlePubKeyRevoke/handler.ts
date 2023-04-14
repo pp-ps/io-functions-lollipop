@@ -168,10 +168,16 @@ export const handleRevoke = (
           errorMessage: error,
           fatal: PermanentFailure.is(err).toString(),
           isSuccess: "false",
+          maxRetryCount: String(
+            context.executionContext.retryContext?.maxRetryCount ?? "undefined"
+          ),
           modelId: err.modelId ?? "",
-          name: "lollipop.pubKeys.revoke.failure"
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: String(
+            context.executionContext.retryContext?.retryCount ?? "undefined"
+          )
         },
-        tagOverrides: { samplingEnabled: String(isTransient) }
+        tagOverrides: { samplingEnabled: "false" }
       });
       context.log.error(error);
       if (isTransient) {
