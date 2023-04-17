@@ -92,7 +92,13 @@ export const reservePubKeys = (
       flow(
         R.filter(isDefined),
         R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
-        A.sequenceS(TE.ApplicativePar)
+        A.sequenceS(TE.ApplicativePar),
+        eventLog.taskEither.errorLeft(error => [
+          `Error reserving keys: ${error.detail}`,
+          {
+            name: FN_LOG_NAME
+          }
+        ])
       )
     ),
     TE.map(reservedKeys =>
@@ -112,12 +118,6 @@ export const reservePubKeys = (
         newPubKey
       )
     ),
-    eventLog.taskEither.errorLeft(error => [
-      `Error reserving keys: ${error.detail}`,
-      {
-        name: FN_LOG_NAME
-      }
-    ]),
     TE.toUnion
   )();
 
