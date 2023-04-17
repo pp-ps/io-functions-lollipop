@@ -151,23 +151,22 @@ export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
         JwkPublicKeyFromToken.decode,
         E.mapLeft(errors => new Error(readableReportSimplified(errors))),
         TE.fromEither,
-        TE.chain(key =>
-          // IO app is currently signing using 'der' algorithm only.
-          // Anyway, a LC should be ready to verify 'ieee-p1363' algorithm too.
-          pipe(
-            validateHttpSignatureWithEconding("der")(
+        TE.map(
+          key =>
+            [
               request,
               lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
               key,
               rawBody
-            ),
+            ] as const
+        ),
+        TE.chain(params =>
+          // IO app is currently signing using 'der' algorithm only.
+          // Anyway, a LC should be ready to verify 'ieee-p1363' algorithm too.
+          pipe(
+            validateHttpSignatureWithEconding("der")(...params),
             TE.orElse(() =>
-              validateHttpSignatureWithEconding("ieee-p1363")(
-                request,
-                lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
-                key,
-                rawBody
-              )
+              validateHttpSignatureWithEconding("ieee-p1363")(...params)
             )
           )
         ),
