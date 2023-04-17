@@ -1,3 +1,4 @@
+import * as TE from "fp-ts/TaskEither";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { JwkPubKeyHashAlgorithmEnum } from "../../generated/definitions/internal/JwkPubKeyHashAlgorithm";
@@ -65,6 +66,12 @@ useWinstonFor({
   transports: [azureContextTransport]
 });
 
+const lollipopKeysUtils = require("../../utils/lollipopKeys");
+const getAllAssertionsRef = jest.spyOn(
+  lollipopKeysUtils,
+  "getAllAssertionsRef"
+);
+
 describe("reserveSingleKey", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -127,6 +134,27 @@ describe("reserveSingleKey", () => {
 describe("reservePubKeys", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
+  });
+
+  test("GIVEN a working model WHEN getAllAssertionsRef fails THEN an internal error is returned", async () => {
+    const mockedContainer = mockContainer();
+    mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
+
+    getAllAssertionsRef.mockImplementationOnce(() =>
+      TE.left(Error("an error"))
+    );
+
+    const model = new LolliPOPKeysModel(mockedContainer.container);
+    const pubKey = aSha512PubKey;
+    const result = await handler.reservePubKeys(model)(pubKey);
+
+    expect(loggerMock.trackEvent).toHaveBeenCalledTimes(1);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: "IResponseErrorInternal"
+      })
+    );
   });
 
   test("GIVEN a working model WHEN reserve a master pub_key THEN store it and return a redirect containing the assertion ref ", async () => {
