@@ -11,7 +11,7 @@ import {
   ResponseErrorInternal,
   ResponseSuccessRedirectToResource
 } from "@pagopa/ts-commons/lib/responses";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
@@ -68,12 +68,6 @@ export const reserveSingleKey = (
     pendingPubKey =>
       pipe(
         lollipopPubkeysModel.create(pendingPubKey),
-        eventLog.taskEither.errorLeft(error => [
-          `${FN_LOG_NAME} | ${error.kind}`,
-          {
-            name: FN_LOG_NAME
-          }
-        ]),
         TE.mapLeft(cosmosErrorsToResponse)
       )
   );
@@ -88,17 +82,26 @@ export const reservePubKeys = (
       inputPubkeys.pub_key
     ),
     eventLog.taskEither.errorLeft(error => [
-      `${FN_LOG_NAME} | ${error.name} - ${error.message}`,
+      `${error.name} - ${error.message}`,
       {
         name: FN_LOG_NAME
       }
     ]),
     TE.mapLeft(err => ResponseErrorInternal(err.message)),
-    TE.chain(
-      flow(
+    TE.chain(assertions =>
+      pipe(
+        assertions,
         R.filter(isDefined),
         R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
-        A.sequenceS(TE.ApplicativePar)
+        A.sequenceS(TE.ApplicativePar),
+        eventLog.taskEither.errorLeft(error => [
+          `Error reserving keys: ${error.detail}`,
+          {
+            masterKey: assertions.master,
+            name: FN_LOG_NAME,
+            usedKey: assertions.used ?? assertions.master
+          }
+        ])
       )
     ),
     TE.map(reservedKeys =>
@@ -118,12 +121,6 @@ export const reservePubKeys = (
         newPubKey
       )
     ),
-    eventLog.taskEither.errorLeft(error => [
-      `${FN_LOG_NAME} | ${error.kind} ${error.detail}`,
-      {
-        name: FN_LOG_NAME
-      }
-    ]),
     TE.toUnion
   )();
 
