@@ -11,7 +11,7 @@ import {
   ResponseErrorInternal,
   ResponseSuccessRedirectToResource
 } from "@pagopa/ts-commons/lib/responses";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
@@ -88,15 +88,18 @@ export const reservePubKeys = (
       }
     ]),
     TE.mapLeft(err => ResponseErrorInternal(err.message)),
-    TE.chain(
-      flow(
+    TE.chain(assertions =>
+      pipe(
+        assertions,
         R.filter(isDefined),
         R.map(reserveSingleKey(lollipopPubkeysModel, inputPubkeys.pub_key)),
         A.sequenceS(TE.ApplicativePar),
         eventLog.taskEither.errorLeft(error => [
           `Error reserving keys: ${error.detail}`,
           {
-            name: FN_LOG_NAME
+            masterKey: assertions.master,
+            name: FN_LOG_NAME,
+            usedKey: assertions.used ?? assertions.master
           }
         ])
       )

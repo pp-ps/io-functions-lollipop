@@ -118,6 +118,9 @@ describe("reserveSingleKey", () => {
       pubKey.pub_key
     )(assertionRef)();
 
+    // By raising an event within reserveSingleKey,
+    // it will be duplicated most of the times (by default masterAlgo != usedAlgo).
+    // We will raise just one event from the caller.
     expect(loggerMock.trackEvent).toHaveBeenCalledTimes(0);
 
     expect(result).toEqual(
@@ -141,7 +144,7 @@ describe("reservePubKeys", () => {
     mockedContainer.mock.create.mockImplementation(mockCreatePendingLollipop);
 
     getAllAssertionsRef.mockImplementationOnce(() =>
-      TE.left(Error("an error"))
+      TE.left(Error("an error in getAllAssertionsRef"))
     );
 
     const model = new LolliPOPKeysModel(mockedContainer.container);
@@ -149,6 +152,15 @@ describe("reservePubKeys", () => {
     const result = await handler.reservePubKeys(model)(pubKey);
 
     expect(loggerMock.trackEvent).toHaveBeenCalledTimes(1);
+    expect(loggerMock.trackEvent).toHaveBeenCalledWith({
+      name: "lollipop.error.reserve-pubkey",
+      properties: {
+        message: "Error - an error in getAllAssertionsRef"
+      },
+      tagOverrides: {
+        samplingEnabled: "false"
+      }
+    });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -224,7 +236,11 @@ describe("reservePubKeys", () => {
       properties: {
         message: `Error reserving keys: Internal server error: ${JSON.stringify(
           { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
-        )}`
+        )}`,
+        masterKey:
+          "sha512-WbgQ6E5Rzdj1HSBkRQbZ_CMI2O9IDReGkb-CcJIuv7dS8GKWrC4EPxy4rWXfQ9F-JWz-67VYfKRjS3m7uc8wBQ",
+        usedKey:
+          "sha512-WbgQ6E5Rzdj1HSBkRQbZ_CMI2O9IDReGkb-CcJIuv7dS8GKWrC4EPxy4rWXfQ9F-JWz-67VYfKRjS3m7uc8wBQ"
       },
       tagOverrides: {
         samplingEnabled: "false"
@@ -256,7 +272,10 @@ describe("reservePubKeys", () => {
       properties: {
         message: `Error reserving keys: Internal server error: ${JSON.stringify(
           { error: {}, kind: "COSMOS_ERROR_RESPONSE" }
-        )}`
+        )}`,
+        masterKey:
+          "sha512-WbgQ6E5Rzdj1HSBkRQbZ_CMI2O9IDReGkb-CcJIuv7dS8GKWrC4EPxy4rWXfQ9F-JWz-67VYfKRjS3m7uc8wBQ",
+        usedKey: "sha256-LWmgzxnrIhywpNW0mctCFWfh2CptjGJJN_H2_FLN2fg"
       },
       tagOverrides: {
         samplingEnabled: "false"
