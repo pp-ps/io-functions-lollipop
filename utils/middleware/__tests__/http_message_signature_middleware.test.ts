@@ -8,11 +8,16 @@ import {
   validLollipopHeaders,
   validMultisignatureHeaders
 } from "../../../__mocks__/lollipopSignature.mock";
-import { aValidSha512AssertionRef } from "../../../__mocks__/lollipopPubKey.mock";
+import {
+  aFiscalCode,
+  aValidSha512AssertionRef
+} from "../../../__mocks__/lollipopPubKey.mock";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionType";
 
 describe("HttpMessageSignatureMiddleware - Success", () => {
   test(`GIVEN a request with a signature
-  WHEN the signature is valid and alg is 'ecdsa-p256-sha256'
+  WHEN the signature is valid, encoding is 'ieee-p1363' and alg is 'ecdsa-p256-sha256'
   THEN the middleware return true`, async () => {
     const mockReq = ({
       app: {
@@ -35,7 +40,7 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
   });
 
   test(`GIVEN a request with a signature
-  WHEN the signature is valid and alg is 'rsa-pss-sha256'
+  WHEN the signature is valid, encoding is 'ieee-p1363' and alg is 'rsa-pss-sha256'
   THEN the middleware return true`, async () => {
     const mockReq = ({
       app: {
@@ -68,7 +73,7 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
   });
 
   test(`GIVEN a request with a multi-signature
-  WHEN all the signatures are valid and alg is 'ecdsa-p256-sha256'
+  WHEN all the signatures are valid, encoding is 'ieee-p1363' and alg is 'ecdsa-p256-sha256'
   THEN the middleware return true`, async () => {
     const mockReq = ({
       app: {
@@ -87,6 +92,42 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
 
     const res = await HttpMessageSignatureMiddleware()(mockReq);
 
+    expect(res).toMatchObject(E.right(true));
+  });
+
+  test(`GIVEN a request with a signature
+  WHEN the signature is valid, encoding is 'der' and alg is 'ecdsa-p256-sha256'
+  THEN the middleware return true`, async () => {
+    const mockReq = ({
+      app: {
+        get: () => ({
+          bindings: {
+            req: { rawBody: JSON.stringify(aValidPayload) }
+          }
+        })
+      },
+      headers: {
+        ["x-pagopa-lollipop-assertion-ref"]:
+          "sha256-HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M",
+        ["x-pagopa-lollipop-assertion-type"]: AssertionTypeEnum.SAML,
+        ["x-pagopa-lollipop-user-id"]: aFiscalCode,
+        ["x-pagopa-lollipop-public-key"]:
+          "eyJrdHkiOiJFQyIsInkiOiJNdkVCMENsUHFnTlhrNVhIYm9xN1hZUnE2TnJTQkFTVmZhT2wzWnAxQmJzPSIsImNydiI6IlAtMjU2IiwieCI6InF6YTQzdGtLTnIrYWlTZFdNL0Q1cTdxMElmV3lZVUFIVEhSNng3dFByZEU9In0",
+        ["x-pagopa-lollipop-auth-jwt"]: "aValidJWT" as NonEmptyString,
+        "x-pagopa-lollipop-original-method": "POST",
+        "x-pagopa-lollipop-original-url":
+          "https://api-app.io.pagopa.it/first-lollipop/sign",
+        "content-digest":
+          "sha-256=:cpyRqJ1VhoVC+MSs9fq4/4wXs4c46EyEFriskys43Zw=:",
+        "signature-input": `sig1=("x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1681473980;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M"`,
+        signature: `sig1=:MEUCIFiZHxuLhk2Jlt46E5kbB8hCx7fN7QeeAj2gaSK3Y+WzAiEAtggj3Jwu8RbTGdNmsDix2zymh0gKwKxoPlolL7j6VTg=:`
+      },
+      url: "https://api-app.io.pagopa.it/first-lollipop/sign",
+      method: "POST",
+      body: aValidPayload
+    } as unknown) as express.Request;
+
+    const res = await HttpMessageSignatureMiddleware()(mockReq);
     expect(res).toMatchObject(E.right(true));
   });
 });

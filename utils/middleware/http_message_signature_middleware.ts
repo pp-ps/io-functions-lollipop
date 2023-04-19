@@ -1,6 +1,7 @@
 /* eslint-disable sort-keys */
 // TODO: Move this file into io-functions-commons
 
+import * as crypto_lib from "crypto";
 import * as express from "express";
 import { verifySignatureHeader } from "@mattrglobal/http-signatures";
 import * as jwkToPem from "jwk-to-pem";
@@ -27,7 +28,7 @@ import * as crypto from "@pagopa/io-functions-commons/dist/src/utils/crypto";
 import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
-import { customVerify } from "../httpSignature.verifiers";
+import { getCustomVerifyWithEncoding } from "../httpSignature.verifiers";
 
 export const LollipopHeadersForSignature = t.intersection([
   t.type({
@@ -55,7 +56,9 @@ export const isValidDigestHeader = (
     E.fold(constFalse, constTrue)
   );
 
-export const validateHttpSignature = (
+export const validateHttpSignatureWithEconding = (
+  dsaEncoding: crypto_lib.DSAEncoding
+) => (
   request: express.Request,
   assertionRef: AssertionRef,
   publicKey: JwkPublicKey,
@@ -68,7 +71,7 @@ export const validateHttpSignature = (
       method: request.method,
       body,
       verifier: {
-        verify: customVerify({
+        verify: getCustomVerifyWithEncoding(dsaEncoding)({
           [assertionRef]: {
             key: publicKey
           }
@@ -148,12 +151,23 @@ export const HttpMessageSignatureMiddleware = (): IRequestMiddleware<
         JwkPublicKeyFromToken.decode,
         E.mapLeft(errors => new Error(readableReportSimplified(errors))),
         TE.fromEither,
-        TE.chain(key =>
-          validateHttpSignature(
-            request,
-            lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
-            key,
-            rawBody
+        TE.map(
+          key =>
+            [
+              request,
+              lollipopHeaders["x-pagopa-lollipop-assertion-ref"],
+              key,
+              rawBody
+            ] as const
+        ),
+        TE.chain(params =>
+          // IO app is currently signing using 'der' algorithm only.
+          // Anyway, a LC should be ready to verify 'ieee-p1363' algorithm too.
+          pipe(
+            validateHttpSignatureWithEconding("der")(...params),
+            TE.orElse(() =>
+              validateHttpSignatureWithEconding("ieee-p1363")(...params)
+            )
           )
         ),
         TE.mapLeft(error =>
