@@ -96,8 +96,10 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "false" },
         properties: expect.objectContaining({
           detail: "PERMANENT",
+          assertionRef: "unknown",
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
           maxRetryCount: "5"
@@ -128,13 +130,56 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "true" },
         properties: expect.objectContaining({
           detail: "TRANSIENT",
           fatal: "false",
           isSuccess: "false",
           modelId: "",
+          assertionRef: aValidAssertionRef,
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
+          maxRetryCount: "5"
+        })
+      })
+    );
+    expect(findLastVersionByModelIdMock).toHaveBeenCalledTimes(1);
+    expect(findLastVersionByModelIdMock).toHaveBeenCalledWith([
+      aValidRevokeInput.assertion_ref
+    ]);
+  });
+
+  it("GIVEN a valid revoke message WHEN findLastVersion fails the last retry THEN it should throw with a transient failure without sampling", async () => {
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.left(toCosmosErrorResponse("Cannot reach cosmosDB"))
+    );
+    await expect(
+      handleRevoke(
+        {
+          ...contextMock,
+          executionContext: {
+            retryContext: { retryCount: 4, maxRetryCount: 5 }
+          }
+        },
+        mockAppinsights as any,
+        lollipopKeysModelMock,
+        masterAlgo,
+        aValidRevokeInput
+      )
+    ).rejects.toBeDefined();
+
+    expect(mockAppinsights.trackException).toHaveBeenCalled();
+    expect(mockAppinsights.trackException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tagOverrides: { samplingEnabled: "false" },
+        properties: expect.objectContaining({
+          detail: "TRANSIENT",
+          fatal: "false",
+          isSuccess: "false",
+          modelId: "",
+          assertionRef: aValidAssertionRef,
+          name: "lollipop.pubKeys.revoke.failure",
+          retryCount: "4",
           maxRetryCount: "5"
         })
       })
@@ -243,8 +288,10 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "false" },
         properties: expect.objectContaining({
           detail: "PERMANENT",
+          assertionRef: aValidAssertionRef,
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
           maxRetryCount: "5"
@@ -285,8 +332,10 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "false" },
         properties: expect.objectContaining({
           detail: "PERMANENT",
+          assertionRef: aValidAssertionRef,
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
           maxRetryCount: "5"
@@ -331,8 +380,10 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "true" },
         properties: expect.objectContaining({
           detail: "TRANSIENT",
+          assertionRef: aValidAssertionRef,
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
           maxRetryCount: "5"
@@ -371,10 +422,12 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "true" },
         properties: expect.objectContaining({
           detail: "TRANSIENT",
           name: "lollipop.pubKeys.revoke.failure",
           retryCount: "1",
+          assertionRef: aValidAssertionRef,
           maxRetryCount: "5",
           errorMessage: expect.stringContaining(
             "Cannot find a master lollipopPubKey"
@@ -414,8 +467,10 @@ describe("handleRevoke", () => {
     expect(mockAppinsights.trackException).toHaveBeenCalled();
     expect(mockAppinsights.trackException).toHaveBeenCalledWith(
       expect.objectContaining({
+        tagOverrides: { samplingEnabled: "true" },
         properties: expect.objectContaining({
           detail: "TRANSIENT",
+          assertionRef: aValidAssertionRef,
           errorMessage: expect.stringContaining(
             "Cannot decode a VALID master lollipopPubKey"
           ),

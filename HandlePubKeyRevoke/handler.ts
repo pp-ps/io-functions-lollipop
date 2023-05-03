@@ -100,6 +100,15 @@ const extractPubKeysToRevoke = (
     )
   );
 
+/**
+ *
+ * @param context The function context
+ * @returns `true` if retryCount >= maxRetryCount-1, `false` otherwise
+ */
+const isLastRetry = (context: Context): boolean =>
+  (context.executionContext.retryContext?.retryCount ?? 0) >=
+  (context.executionContext.retryContext?.maxRetryCount ?? 0) - 1;
+
 const revokePubKey = (lollipopKeysModel: LolliPOPKeysModel) => (
   notPendingLollipopPubKey: NotPendingLolliPopPubKeys
 ): TE.TaskEither<CosmosErrors, RetrievedLolliPopPubKeys> =>
@@ -164,6 +173,12 @@ export const handleRevoke = (
       trackException(telemetryClient, {
         exception: new Error(error),
         properties: {
+          assertionRef: pipe(
+            rawRevokeMessage,
+            RevokeAssertionRefInfo.decode,
+            E.map(message => message.assertion_ref),
+            E.getOrElse(() => "unknown")
+          ),
           detail: err.kind,
           errorMessage: error,
           fatal: PermanentFailure.is(err).toString(),
@@ -177,7 +192,10 @@ export const handleRevoke = (
             context.executionContext.retryContext?.retryCount ?? "undefined"
           )
         },
-        tagOverrides: { samplingEnabled: "false" }
+        tagOverrides: {
+          samplingEnabled:
+            !isTransient || isLastRetry(context) ? "false" : "true"
+        }
       });
       context.log.error(error);
       if (isTransient) {
