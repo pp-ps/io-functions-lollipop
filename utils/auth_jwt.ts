@@ -91,7 +91,8 @@ export const verifyJWTMiddleware = (
       {
         error: readableReportSimplified(error),
         jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
-        name: "lollipop.jwt.invalid"
+        name: "lollipop.jwt.invalid",
+        requestUrl: req.url
       }
     ]),
     E.mapLeft(_ =>
@@ -110,7 +111,8 @@ export const verifyJWTMiddleware = (
           {
             errorMessage: error.message,
             jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
-            name: "lollipop.jwt.sign.error"
+            name: "lollipop.jwt.sign.error",
+            requestUrl: req.url
           }
         ]),
         TE.mapLeft(_ =>
