@@ -12,6 +12,8 @@ import {
   getResponseErrorForbiddenNotAuthorized,
   IResponseErrorForbiddenNotAuthorized
 } from "@pagopa/ts-commons/lib/responses";
+import { eventLog } from "@pagopa/winston-ts";
+import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { OperationId } from "../generated/definitions/internal/OperationId";
 
@@ -84,6 +86,14 @@ export const verifyJWTMiddleware = (
   pipe(
     req.headers[jwtConfig.BEARER_AUTH_HEADER],
     JWTAuthBearer.decode,
+    eventLog.either.infoLeft(error => [
+      `Invalid JWT`,
+      {
+        error: readableReportSimplified(error),
+        jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
+        name: "lollipop.jwt.invalid"
+      }
+    ]),
     E.mapLeft(_ =>
       getResponseErrorForbiddenNotAuthorized(
         `Invalid or missing JWT in header ${jwtConfig.BEARER_AUTH_HEADER}`
@@ -95,6 +105,14 @@ export const verifyJWTMiddleware = (
       pipe(
         token,
         getValidateAuthJWT(jwtConfig),
+        eventLog.taskEither.infoLeft(error => [
+          `JWT validation error`,
+          {
+            errorMessage: error.message,
+            jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
+            name: "lollipop.jwt.sign.error"
+          }
+        ]),
         TE.mapLeft(_ =>
           getResponseErrorForbiddenNotAuthorized("Invalid or expired JWT")
         )
