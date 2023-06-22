@@ -12,6 +12,8 @@ import {
   getResponseErrorForbiddenNotAuthorized,
   IResponseErrorForbiddenNotAuthorized
 } from "@pagopa/ts-commons/lib/responses";
+import { eventLog } from "@pagopa/winston-ts";
+import { readableReportSimplified } from "@pagopa/ts-commons/lib/reporters";
 import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { OperationId } from "../generated/definitions/internal/OperationId";
 
@@ -76,7 +78,8 @@ export const getValidateAuthJWT = ({
  * */
 
 export const verifyJWTMiddleware = (
-  jwtConfig: JWTConfig
+  jwtConfig: JWTConfig,
+  fnName: string
 ): IRequestMiddleware<"IResponseErrorForbiddenNotAuthorized", AuthJWT> => (
   req
   // TODO refactor in order to use this method witha generic type
@@ -84,6 +87,15 @@ export const verifyJWTMiddleware = (
   pipe(
     req.headers[jwtConfig.BEARER_AUTH_HEADER],
     JWTAuthBearer.decode,
+    eventLog.either.errorLeft(error => [
+      `Invalid JWT`,
+      {
+        error: readableReportSimplified(error),
+        jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
+        name: fnName,
+        requestUrl: req.url
+      }
+    ]),
     E.mapLeft(_ =>
       getResponseErrorForbiddenNotAuthorized(
         `Invalid or missing JWT in header ${jwtConfig.BEARER_AUTH_HEADER}`
@@ -95,6 +107,15 @@ export const verifyJWTMiddleware = (
       pipe(
         token,
         getValidateAuthJWT(jwtConfig),
+        eventLog.taskEither.errorLeft(error => [
+          `JWT validation error`,
+          {
+            errorMessage: error.message,
+            jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
+            name: fnName,
+            requestUrl: req.url
+          }
+        ]),
         TE.mapLeft(_ =>
           getResponseErrorForbiddenNotAuthorized("Invalid or expired JWT")
         )

@@ -5,9 +5,9 @@ info:
   x-logo:
     url: https://io.italia.it/assets/img/io-logo-blue.svg
   description: |
-    Documentation of the IO Lollipop Function API exposed to Lollipop Consumerhere.
-servers: 
-  - url: https://api.pagopa.it/lollipop/api/v1
+    Documentation of the IO Lollipop Function API exposed to Lollipop Consumer.
+servers:
+  - url: https://api.io.pagopa.it/lollipop/api/v1
 security:
   - ApiKeyAuth: []
 paths:
@@ -19,7 +19,7 @@ paths:
         - name: assertion_ref
           required: true
           in: path
-          schema: 
+          schema:
             $ref: "#/components/schemas/AssertionRef"
         - name: x-pagopa-lollipop-auth
           required: true
@@ -78,7 +78,7 @@ components:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRefSha512"
     AssertionRef:
       $ref: "../node_modules/@pagopa/io-functions-commons/openapi/lollipop_definitions.yaml#/components/schemas/AssertionRef"
-    
+
     LollipopAuthBearer:
       type: string
       pattern: "^Bearer [a-zA-Z0-9-_].+"
@@ -88,7 +88,7 @@ components:
     SamlUserInfo:
       type: object
       properties:
-        response_xml: 
+        response_xml:
           type: string
           description: A string representation of a signed SPID/CIE response
           minLength: 1
@@ -103,16 +103,15 @@ components:
     OidcUserInfo:
       type: object
       properties:
-        id_token: 
+        id_token:
           $ref: "#/components/schemas/OidcSignedJwt"
         claims_token:
           $ref: "#/components/schemas/OidcSignedJwt"
       required:
         - id_token
         - claims_token
-          
+
     LCUserInfo:
       oneOf:
         - $ref: "#/components/schemas/SamlUserInfo"
         - $ref: "#/components/schemas/OidcUserInfo"
-

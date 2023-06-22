@@ -4,11 +4,10 @@ info:
   title: IO Lollipop Function Lollipop Consumer API
   x-logo:
     url: https://io.italia.it/assets/img/io-logo-blue.svg
-  description: >
-    Documentation of the IO Lollipop Function API exposed to Lollipop
-    Consumerhere.
+  description: |
+    Documentation of the IO Lollipop Function API exposed to Lollipop Consumer.
 servers:
-  - url: https://api.pagopa.it/lollipop/api/v1
+  - url: https://api.io.pagopa.it/lollipop/api/v1
 security:
   - ApiKeyAuth: []
 paths:

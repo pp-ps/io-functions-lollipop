@@ -104,7 +104,10 @@ describe("VerifyJWTMiddleware", () => {
     const authJwt = await getGenerateAuthJWT(aConfigWithPrimaryKey)(aPayload)();
     expect(E.isRight(authJwt)).toBeTruthy();
 
-    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+    const middleware = verifyJWTMiddleware(
+      aConfigWithTwoPrimaryKeys,
+      "function-Name"
+    );
 
     if (E.isRight(authJwt)) {
       const mockReq = ({
@@ -129,7 +132,10 @@ describe("VerifyJWTMiddleware", () => {
     WHEN VerifyJWTMiddleware is called\
     THEN it should return a IResponseErrorForbiddenNotAuthorized\
     ", async () => {
-    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+    const middleware = verifyJWTMiddleware(
+      aConfigWithTwoPrimaryKeys,
+      "function-Name"
+    );
 
     const mockReq = ({
       headers: {
@@ -155,7 +161,10 @@ describe("VerifyJWTMiddleware", () => {
     ", async () => {
     const invalidAuth = "invalidAuth";
 
-    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+    const middleware = verifyJWTMiddleware(
+      aConfigWithTwoPrimaryKeys,
+      "function-Name"
+    );
 
     const mockReq = ({
       headers: {
@@ -181,7 +190,10 @@ describe("VerifyJWTMiddleware", () => {
     ", async () => {
     const invalidAuth = "Bearer aa";
 
-    const middleware = verifyJWTMiddleware(aConfigWithTwoPrimaryKeys);
+    const middleware = verifyJWTMiddleware(
+      aConfigWithTwoPrimaryKeys,
+      "function-Name"
+    );
 
     const mockReq = ({
       headers: {
