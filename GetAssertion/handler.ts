@@ -157,7 +157,7 @@ export function GetAssertion(
   const middlewaresWrap = withRequestMiddlewares(
     AzureApiAuthMiddleware(new Set([UserGroup.ApiLollipopAssertionRead])),
     RequiredParamMiddleware("assertion_ref", AssertionRef),
-    verifyJWTMiddleware(jwtConfig)
+    verifyJWTMiddleware(jwtConfig, FN_LOG_NAME)
   );
   return wrapRequestHandler(middlewaresWrap(handler));
 }

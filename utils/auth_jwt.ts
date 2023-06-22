@@ -78,7 +78,8 @@ export const getValidateAuthJWT = ({
  * */
 
 export const verifyJWTMiddleware = (
-  jwtConfig: JWTConfig
+  jwtConfig: JWTConfig,
+  fnName: string
 ): IRequestMiddleware<"IResponseErrorForbiddenNotAuthorized", AuthJWT> => (
   req
   // TODO refactor in order to use this method witha generic type
@@ -91,7 +92,7 @@ export const verifyJWTMiddleware = (
       {
         error: readableReportSimplified(error),
         jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
-        name: "lollipop.jwt.invalid",
+        name: fnName,
         requestUrl: req.url
       }
     ]),
@@ -111,7 +112,7 @@ export const verifyJWTMiddleware = (
           {
             errorMessage: error.message,
             jwt: req.headers[jwtConfig.BEARER_AUTH_HEADER],
-            name: "lollipop.jwt.sign.error",
+            name: fnName,
             requestUrl: req.url
           }
         ]),
