@@ -86,7 +86,7 @@ export const verifyJWTMiddleware = (
   pipe(
     req.headers[jwtConfig.BEARER_AUTH_HEADER],
     JWTAuthBearer.decode,
-    eventLog.either.infoLeft(error => [
+    eventLog.either.errorLeft(error => [
       `Invalid JWT`,
       {
         error: readableReportSimplified(error),
@@ -106,7 +106,7 @@ export const verifyJWTMiddleware = (
       pipe(
         token,
         getValidateAuthJWT(jwtConfig),
-        eventLog.taskEither.infoLeft(error => [
+        eventLog.taskEither.errorLeft(error => [
           `JWT validation error`,
           {
             errorMessage: error.message,
