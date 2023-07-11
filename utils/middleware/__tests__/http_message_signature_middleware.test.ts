@@ -59,7 +59,7 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
         Signature:
           "sig1=:LaN4n+miIZDzPHSV1CwFM/M+qzp0InLYlfxKfOC8b+VMv4q9leZSQcGwLC7uLpvdn4o8q9+LKc6zPbsD6NWtJclbwVLBXJKmpI7OzPkHJhho809JPHiFeQ49o/YfLXGKSlGp0kYmpP6KwsFivkuH54+/I5s5PDJacpQ5J2/j6MeFZH2arft9Kg5ZSOBZdG4EpvAxOrmje8bzIbaptb2DSxdX9YfNiYf6fuMjDnGOVAa3nz8z135tyvPj5tP8P2MKRDKVc2L1sUfpTIJ9HSjcEx6cxhBXdPwozdtVy/we7QXBl+c9fHzCytk3aNlaPh1B10MCwuKQiky8M1GCR1BMC5pIkhXenOcvj7hNkTe1FEwkvLWHCYdJzNLD8ERbTfsKEM1CZt7I5fMBr0/mitOJZ2GBIOnhZZya0oFnR5br22zvXoJL8lS1ajp3Wt3EXSdliDloy5LDOPqxAEH5nXInfxDaYQgZuLWa0I2oLmSr/DlW/KqX0KVCtoJXdwxJjhBS/ZRTdC0u2WmcE0QA0YXeJfUWaU8KS1Nx+Lbz22xEu7kNGTh7r8cmtVzl5bybtpvMUZ7dqNgoW5mcaCUDjeQOinRsugVWVTowTPjJWXW+8cV9LeBJRq4oc9HzoLQDfn/HGoMFpi79pZQIzNFBE3Jpdoouu392AqmEebzEgm2838A=:",
         ["Signature-Input"]:
-          'sig1=("content-digest" "x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1678814391;nonce="aNonce";alg="rsa-pss-sha256";keyid="sha256-A3OhKGLYwSvdJ2txHi_SGQ3G-sHLh2Ibu91ErqFx_58"'
+          'sig1=("content-digest" "x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1678814391;nonce="aNonce";alg="rsa-pss-sha256";keyid="A3OhKGLYwSvdJ2txHi_SGQ3G-sHLh2Ibu91ErqFx_58"'
       },
       url:
         "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
@@ -119,7 +119,7 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
           "https://api-app.io.pagopa.it/first-lollipop/sign",
         "content-digest":
           "sha-256=:cpyRqJ1VhoVC+MSs9fq4/4wXs4c46EyEFriskys43Zw=:",
-        "signature-input": `sig1=("x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1681473980;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M"`,
+        "signature-input": `sig1=("x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1681473980;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M"`,
         signature: `sig1=:MEUCIFiZHxuLhk2Jlt46E5kbB8hCx7fN7QeeAj2gaSK3Y+WzAiEAtggj3Jwu8RbTGdNmsDix2zymh0gKwKxoPlolL7j6VTg=:`
       },
       url: "https://api-app.io.pagopa.it/first-lollipop/sign",

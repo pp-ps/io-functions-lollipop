@@ -6,11 +6,10 @@ import * as express from "express";
 import { verifySignatureHeader } from "@mattrglobal/http-signatures";
 import * as jwkToPem from "jwk-to-pem";
 
-import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
+import { constFalse, constTrue, flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as t from "io-ts";
-import * as jose from "jose";
 
 import {
   JwkPublicKey,
@@ -26,6 +25,7 @@ import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/
 import { getAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
 import * as crypto from "@pagopa/io-functions-commons/dist/src/utils/crypto";
+import * as A from "fp-ts/Array";
 import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
@@ -67,20 +67,14 @@ export const validateHttpSignatureWithEconding = (
   body?: string
 ): TE.TaskEither<Error, true> =>
   pipe(
-    TE.tryCatch(
-      () =>
-        jose.calculateJwkThumbprint(
-          publicKey,
-          getAlgoFromAssertionRef(assertionRef)
-        ),
-      E.toError
-    ),
+    TE.of(getAlgoFromAssertionRef(assertionRef)),
+    TE.map(algo => `${algo}-`),
+    TE.map(assertionRefPrefix => assertionRef.split(assertionRefPrefix)),
     TE.chain(
-      TE.fromPredicate(
-        thumbprint =>
-          assertionRef ===
-          `${getAlgoFromAssertionRef(assertionRef)}-${thumbprint}`,
-        () => new Error("assertionRef mismatch the thumbprint of the pubkey")
+      flow(
+        A.tail,
+        TE.fromOption(() => new Error("Unexpected assertionRef")),
+        TE.map(_ => _.join(""))
       )
     ),
     TE.map(thumbprint => ({
