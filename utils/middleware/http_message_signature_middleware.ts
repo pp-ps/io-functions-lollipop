@@ -10,6 +10,7 @@ import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as t from "io-ts";
+import * as jose from "jose";
 
 import {
   JwkPublicKey,
@@ -29,6 +30,7 @@ import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyTo
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
 import { getCustomVerifyWithEncoding } from "../httpSignature.verifiers";
+import { getAlgoFromAssertionRef } from "../lollipopKeys";
 
 export const LollipopHeadersForSignature = t.intersection([
   t.type({
@@ -65,20 +67,35 @@ export const validateHttpSignatureWithEconding = (
   body?: string
 ): TE.TaskEither<Error, true> =>
   pipe(
-    {
+    TE.tryCatch(
+      () =>
+        jose.calculateJwkThumbprint(
+          publicKey,
+          getAlgoFromAssertionRef(assertionRef)
+        ),
+      E.toError
+    ),
+    TE.chain(
+      TE.fromPredicate(
+        thumbprint =>
+          assertionRef ===
+          `${getAlgoFromAssertionRef(assertionRef)}-${thumbprint}`,
+        () => new Error("assertionRef mismatch the thumbprint of the pubkey")
+      )
+    ),
+    TE.map(thumbprint => ({
       httpHeaders: request.headers,
       url: request.url,
       method: request.method,
       body,
       verifier: {
         verify: getCustomVerifyWithEncoding(dsaEncoding)({
-          [assertionRef]: {
+          [thumbprint]: {
             key: publicKey
           }
         })
       }
-    },
-    TE.of,
+    })),
     TE.chain(params =>
       TE.tryCatch(async () => verifySignatureHeader(params), E.toError)
     ),
