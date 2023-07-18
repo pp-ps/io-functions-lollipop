@@ -8,8 +8,8 @@ import * as E from "fp-ts/Either";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { UrlFromString, ValidUrl } from "@pagopa/ts-commons/lib/url";
 
+import { AssertionRef } from "../generated/definitions/internal/AssertionRef";
 import { LollipopMethodEnum } from "../generated/definitions/lollipop-first-consumer/LollipopMethod";
-
 import { AssertionTypeEnum } from "../generated/definitions/internal/AssertionType";
 
 import { FirstLcAssertionClientConfig } from "../utils/config";
@@ -34,17 +34,15 @@ export const generateES256Key = async () => {
   const pubKeyJwk = await jose.exportJWK(key.publicKey);
   const privateKeyJwk = await jose.exportJWK(key.privateKey);
 
-  const encodedPubKey = toEncodedJwk(pubKeyJwk as any);
   const thumbprintSha256 = `${await jose.calculateJwkThumbprint(
     pubKeyJwk,
     "sha256"
   )}`;
-  const assertionRefSha256 = `sha256-${thumbprintSha256}`;
 
   return {
-    encodedPubKey,
+    encodedPubKey: toEncodedJwk(pubKeyJwk as any),
     privateKeyJwk,
-    assertionRefSha256,
+    assertionRefSha256: `sha256-${thumbprintSha256}` as AssertionRef,
     thumbprintSha256
   };
 };
@@ -66,17 +64,15 @@ export const generateRSAKey = async () => {
     alg: "sha256"
   };
 
-  const encodedPubKey = toEncodedJwk(pubKeyJwk as any);
   const thumbprintSha256 = `${await jose.calculateJwkThumbprint(
     pubKeyJwk,
     "sha256"
   )}`;
-  const assertionRefSha256 = `sha256-${thumbprintSha256}`;
 
   return {
-    encodedPubKey,
+    encodedPubKey: toEncodedJwk(pubKeyJwk as any),
     privateKeyJwk,
-    assertionRefSha256,
+    assertionRefSha256: `sha256-${thumbprintSha256}` as AssertionRef,
     thumbprintSha256
   };
 };
@@ -102,7 +98,7 @@ export const firstLcAssertionClientConfig: FirstLcAssertionClientConfig = {
   IDP_KEYS_BASE_URL: ("https://api.is.eng.pagopa.it/idp-keys" as unknown) as ValidUrl
 };
 
-export const validLollipopExtraHeaders = {
+export const validLollipopLCParamsHeaders = {
   ["x-pagopa-lollipop-assertion-ref"]: aValidSha256AssertionRef,
   ["x-pagopa-lollipop-assertion-type"]: AssertionTypeEnum.SAML,
   ["x-pagopa-lollipop-user-id"]: aFiscalCode,
@@ -110,9 +106,136 @@ export const validLollipopExtraHeaders = {
   ["x-pagopa-lollipop-auth-jwt"]: "aValidJWT" as NonEmptyString
 };
 
+export const getValidLollipopLCParamsHeaders = (
+  assertionRef: AssertionRef,
+  encodedPubKey: NonEmptyString
+) => ({
+  ...validLollipopLCParamsHeaders,
+
+  ["x-pagopa-lollipop-public-key"]: encodedPubKey,
+  ["x-pagopa-lollipop-assertion-ref"]: assertionRef
+});
+
 // --------------------------------------------
 // Signature methods
 // --------------------------------------------
+
+type SignFunction = (data: Uint8Array) => Promise<Uint8Array>;
+
+/**
+ * Create a signed LolliPoP request
+ */
+export const withLollipopSignature = (
+  keyid: string,
+  nonce: string,
+  alg: string,
+  privateKey: jose.JWK,
+  sign: (privateKey: jose.JWK) => SignFunction
+) => async (request: express.Request): Promise<express.Request> => {
+  const signWithPrivateKey = sign(privateKey);
+
+  const method = request?.method ?? "GET";
+  const url = request.url;
+
+  const lollipopHttpHeaders = {
+    ["x-pagopa-lollipop-original-method"]: method,
+    ["x-pagopa-lollipop-original-url"]: url
+  };
+
+  const prevHeaders = getHeadersAsObject(request);
+
+  const bodyCovered: string[] = request?.body ? ["content-digest"] : [];
+
+  const options: CreateSignatureHeaderOptions = {
+    alg: alg as any,
+    nonce,
+    signer: { keyid, sign: signWithPrivateKey },
+    url,
+    method,
+    httpHeaders: { ...prevHeaders, ...lollipopHttpHeaders },
+    body: request?.body ? (request?.body as string) : undefined,
+    coveredFields: [
+      ...bodyCovered,
+      "x-pagopa-lollipop-original-method",
+      "x-pagopa-lollipop-original-url"
+    ].map(v => [v.toLowerCase(), new Map()])
+  };
+
+  const result = await createSignatureHeader(options);
+
+  if (result.isErr()) {
+    throw Error(result.error.message);
+  }
+
+  const signatureResult = result.value;
+
+  return ({
+    ...request,
+    headers: {
+      ...prevHeaders,
+      ...lollipopHttpHeaders,
+      ...(signatureResult.digest
+        ? { ["content-digest"]: signatureResult.digest }
+        : {}),
+      ["Signature"]: signatureResult.signature,
+      ["Signature-Input"]: signatureResult.signatureInput
+    }
+  } as any) as express.Request;
+};
+
+/**
+ * Create a signed request for io-sign header
+ */
+export const withIoSignLollipopSignature = (
+  keyid: string,
+  nonce: string,
+  alg: string,
+  privateKey: jose.JWK,
+  sign: (privateKey: jose.JWK) => SignFunction
+) => async (request: express.Request): Promise<express.Request> => {
+  if (!(request?.headers && "X-io-sign-qtspclauses" in request?.headers))
+    throw new Error("Missing X-io-sign-qtspclauses in headers");
+
+  const signWithPrivateKey = sign(privateKey);
+
+  const method = request?.method ?? "GET";
+  const url = request.url;
+
+  const prevHeaders = getHeadersAsObject(request);
+
+  const options: CreateSignatureHeaderOptions = {
+    alg: alg as any,
+    nonce,
+    signer: { keyid, sign: signWithPrivateKey },
+    url,
+    method,
+    httpHeaders: prevHeaders,
+    body: request?.body ? (request?.body as string) : undefined,
+    coveredFields: ["X-io-sign-qtspclauses"].map(v => [
+      v.toLowerCase(),
+      new Map()
+    ])
+  };
+
+  const result = await createSignatureHeader(options);
+
+  if (result.isErr()) {
+    throw Error(result.error.message);
+  }
+
+  const signatureResult = result.value;
+
+  return ({
+    ...request,
+    headers: {
+      ...prevHeaders,
+      ["Signature"]: signatureResult.signature,
+      ["Signature-Input"]: signatureResult.signatureInput
+    }
+  } as any) as express.Request;
+};
+
+// ------------------------
 
 export const signEcdsaSha256WithEncoding = (
   dsaEncoding: "der" | "ieee-p1363"
@@ -142,29 +265,12 @@ export const signRsaPssSha256WithEncoding = (
     });
 };
 
-type SignFunction = (data: Uint8Array) => Promise<Uint8Array>;
+// ------------------------------
+// Private methods
+// ------------------------------
 
-/**
- * Create a signed LolliPoP request
- */
-export const withLollipopSignature = (
-  keyid: string,
-  nonce: string,
-  alg: string,
-  privateKey: jose.JWK,
-  sign: (privateKey: jose.JWK) => SignFunction
-) => async (request: express.Request): Promise<express.Request> => {
-  const signWithPrivateKey = sign(privateKey);
-
-  const method = request?.method ?? "GET";
-  const url = request.url;
-
-  const lollipopHttpHeaders = {
-    ["x-pagopa-lollipop-original-method"]: method,
-    ["x-pagopa-lollipop-original-url"]: url
-  };
-
-  const prevHeaders = request?.headers
+const getHeadersAsObject = (request: express.Request) =>
+  request?.headers
     ? Object.keys(request.headers).reduce(
         (p, c) => ({
           ...p,
@@ -173,100 +279,3 @@ export const withLollipopSignature = (
         {}
       )
     : {};
-
-  const bodyCovered: string[] = request?.body ? ["content-digest"] : [];
-
-  const options: CreateSignatureHeaderOptions = {
-    alg: alg as any,
-    nonce,
-    signer: { keyid, sign: signWithPrivateKey },
-    url,
-    method,
-    httpHeaders: { ...prevHeaders, ...lollipopHttpHeaders },
-    body: request?.body ? (request?.body as string) : undefined,
-    coveredFields: [
-      ...bodyCovered,
-      "x-pagopa-lollipop-original-method",
-      "x-pagopa-lollipop-original-url"
-    ].map(v => [v.toLowerCase(), new Map()])
-  };
-
-  const result = await createSignatureHeader(options);
-
-  if (result.isErr()) {
-    throw Error(result.error.message);
-  }
-
-  const h = result.value;
-
-  return ({
-    ...request,
-    headers: {
-      ...prevHeaders,
-      ...lollipopHttpHeaders,
-      ...(h.digest ? { ["content-digest"]: h.digest } : {}),
-      ["Signature"]: h.signature,
-      ["Signature-Input"]: h.signatureInput
-    }
-  } as any) as express.Request;
-};
-
-/**
- * Create a signed request for io-sign header
- */
-export const withIoSignLollipopSignature = (
-  keyid: string,
-  nonce: string,
-  alg: string,
-  privateKey: jose.JWK,
-  sign: (privateKey: jose.JWK) => SignFunction
-) => async (request: express.Request): Promise<express.Request> => {
-  if (!(request?.headers && "X-io-sign-qtspclauses" in request?.headers))
-    throw new Error("Missing X-io-sign-qtspclauses in headers");
-
-  const signWithPrivateKey = sign(privateKey);
-
-  const method = request?.method ?? "GET";
-  const url = request.url;
-
-  const prevHeaders = request?.headers
-    ? Object.keys(request.headers).reduce(
-        (p, c) => ({
-          ...p,
-          [c]: (request.headers as Record<string, string>)[c]
-        }),
-        {}
-      )
-    : {};
-
-  const options: CreateSignatureHeaderOptions = {
-    alg: alg as any,
-    nonce,
-    signer: { keyid, sign: signWithPrivateKey },
-    url,
-    method,
-    httpHeaders: prevHeaders,
-    body: request?.body ? (request?.body as string) : undefined,
-    coveredFields: ["X-io-sign-qtspclauses"].map(v => [
-      v.toLowerCase(),
-      new Map()
-    ])
-  };
-
-  const result = await createSignatureHeader(options);
-
-  if (result.isErr()) {
-    throw Error(result.error.message);
-  }
-
-  const h = result.value;
-
-  return ({
-    ...request,
-    headers: {
-      ...prevHeaders,
-      ["Signature"]: h.signature,
-      ["Signature-Input"]: h.signatureInput
-    }
-  } as any) as express.Request;
-};

@@ -1,20 +1,21 @@
 import * as express from "express";
 
 import * as E from "fp-ts/Either";
+import { AlgorithmTypes } from "@mattrglobal/http-signatures";
 
 import { HttpMessageSignatureMiddleware } from "../http_message_signature_middleware";
 import {
   aValidPayload,
   generateES256Key,
   generateRSAKey,
+  getValidLollipopLCParamsHeaders,
   signEcdsaSha256WithEncoding,
   signRsaPssSha256WithEncoding,
-  validLollipopExtraHeaders,
+  validLollipopLCParamsHeaders,
   withIoSignLollipopSignature,
   withLollipopSignature
 } from "../../../__mocks__/lollipopSignature.mock";
 import { aValidSha512AssertionRef } from "../../../__mocks__/lollipopPubKey.mock";
-import { AlgorithmTypes } from "@mattrglobal/http-signatures";
 
 const baseReq = ({
   app: {
@@ -42,18 +43,16 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
 
     const mockReq = ({
       ...baseReq,
-      headers: {
-        ...validLollipopExtraHeaders,
-        ["x-pagopa-lollipop-assertion-ref"]: data.assertionRefSha256,
-        ["x-pagopa-lollipop-public-key"]: data.encodedPubKey
-      }
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const alg = AlgorithmTypes["ecdsa-p256-sha256"];
     const mockReqWithSignedParams = await withLollipopSignature(
       data.thumbprintSha256,
       "a nonce",
-      alg,
+      AlgorithmTypes["ecdsa-p256-sha256"],
       data.privateKeyJwk,
       signEcdsaSha256WithEncoding("ieee-p1363")
     )(mockReq);
@@ -70,18 +69,16 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
 
     const mockReq = ({
       ...baseReq,
-      headers: {
-        ...validLollipopExtraHeaders,
-        ["x-pagopa-lollipop-assertion-ref"]: data.assertionRefSha256,
-        ["x-pagopa-lollipop-public-key"]: data.encodedPubKey
-      }
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const alg = "rsa-pss-sha256";
     const mockReqWithSignedParams = await withLollipopSignature(
       data.thumbprintSha256,
       "a nonce",
-      alg,
+      "rsa-pss-sha256",
       data.privateKeyJwk,
       signRsaPssSha256WithEncoding("ieee-p1363")
     )(mockReq);
@@ -98,15 +95,15 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
     const mockReq = ({
       ...baseReq,
       headers: {
-        ...validLollipopExtraHeaders,
-        ["x-pagopa-lollipop-assertion-ref"]: data.assertionRefSha256,
-        ["x-pagopa-lollipop-public-key"]: data.encodedPubKey,
+        ...getValidLollipopLCParamsHeaders(
+          data.assertionRefSha256,
+          data.encodedPubKey
+        ),
         "X-io-sign-qtspclauses": "a value"
       }
     } as unknown) as express.Request;
 
     const alg = AlgorithmTypes["ecdsa-p256-sha256"];
-
     const mockReqWith2ndSignedParams = await withIoSignLollipopSignature(
       data.thumbprintSha256,
       "a nonce",
@@ -116,7 +113,7 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
     )(mockReq);
     const mockReqWithSignedParams = await withLollipopSignature(
       data.thumbprintSha256,
-      "a nonce",
+      "another nonce",
       alg,
       data.privateKeyJwk,
       signEcdsaSha256WithEncoding("ieee-p1363")
@@ -134,18 +131,16 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
 
     const mockReq = ({
       ...baseReq,
-      headers: {
-        ...validLollipopExtraHeaders,
-        ["x-pagopa-lollipop-assertion-ref"]: data.assertionRefSha256,
-        ["x-pagopa-lollipop-public-key"]: data.encodedPubKey
-      }
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const alg = AlgorithmTypes["ecdsa-p256-sha256"];
     const mockReqWithSignedParams = await withLollipopSignature(
       data.thumbprintSha256,
       "a nonce",
-      alg,
+      AlgorithmTypes["ecdsa-p256-sha256"],
       data.privateKeyJwk,
       signEcdsaSha256WithEncoding("der")
     )(mockReq);
@@ -165,16 +160,15 @@ describe("HttpMessageSignatureMiddleware - Failures", () => {
     const mockReq = ({
       ...baseReq,
       headers: {
-        ...validLollipopExtraHeaders,
+        ...validLollipopLCParamsHeaders,
         ["x-pagopa-lollipop-assertion-ref"]: aValidSha512AssertionRef
       }
     } as unknown) as express.Request;
 
-    const alg = AlgorithmTypes["ecdsa-p256-sha256"];
     const mockReqWithSignedParams = await withLollipopSignature(
       data.thumbprintSha256,
       "a nonce",
-      alg,
+      AlgorithmTypes["ecdsa-p256-sha256"],
       data.privateKeyJwk,
       signEcdsaSha256WithEncoding("ieee-p1363")
     )(mockReq);

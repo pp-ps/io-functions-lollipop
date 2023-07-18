@@ -11,7 +11,7 @@ import { aSAMLResponse } from "../../__mocks__/assertion.mock";
 import {
   aValidPayload,
   firstLcAssertionClientConfig,
-  validLollipopExtraHeaders
+  validLollipopLCParamsHeaders
 } from "../../__mocks__/lollipopSignature.mock";
 import { LollipopOriginalURL } from "../../generated/definitions/lollipop-first-consumer/LollipopOriginalURL";
 import { LollipopSignature } from "../../generated/definitions/lollipop-first-consumer/LollipopSignature";
@@ -48,8 +48,7 @@ describe("FirstLollipopConsumerSignedMessage", () => {
     const res = await handler(
       aValidJwk,
       {
-        ...validLollipopExtraHeaders,
-        "x-pagopa-lollipop-assertion-ref": "sha256-a7qE0Y0DyqeOFFREIQSLKfu5WlbckdxVXKFasfcI-Dg" as AssertionRef,
+        ...validLollipopLCParamsHeaders,
         // ---------
         // verified header
         // ---------
