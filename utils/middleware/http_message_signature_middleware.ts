@@ -6,7 +6,7 @@ import * as express from "express";
 import { verifySignatureHeader } from "@mattrglobal/http-signatures";
 import * as jwkToPem from "jwk-to-pem";
 
-import { constFalse, constTrue, pipe } from "fp-ts/lib/function";
+import { constFalse, constTrue, flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/Either";
 import * as t from "io-ts";
@@ -25,10 +25,12 @@ import { IRequestMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/
 import { getAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 
 import * as crypto from "@pagopa/io-functions-commons/dist/src/utils/crypto";
+import * as A from "fp-ts/Array";
 import { JwkPubKeyToken } from "../../generated/definitions/internal/JwkPubKeyToken";
 import { AssertionRef } from "../../generated/definitions/internal/AssertionRef";
 
 import { getCustomVerifyWithEncoding } from "../httpSignature.verifiers";
+import { getAlgoFromAssertionRef } from "../lollipopKeys";
 
 export const LollipopHeadersForSignature = t.intersection([
   t.type({
@@ -65,20 +67,29 @@ export const validateHttpSignatureWithEconding = (
   body?: string
 ): TE.TaskEither<Error, true> =>
   pipe(
-    {
+    TE.of(getAlgoFromAssertionRef(assertionRef)),
+    TE.map(algo => `${algo}-`),
+    TE.map(assertionRefPrefix => assertionRef.split(assertionRefPrefix)),
+    TE.chain(
+      flow(
+        A.tail,
+        TE.fromOption(() => new Error("Unexpected assertionRef")),
+        TE.map(_ => _.join(""))
+      )
+    ),
+    TE.map(thumbprint => ({
       httpHeaders: request.headers,
       url: request.url,
       method: request.method,
       body,
       verifier: {
         verify: getCustomVerifyWithEncoding(dsaEncoding)({
-          [assertionRef]: {
+          [thumbprint]: {
             key: publicKey
           }
         })
       }
-    },
-    TE.of,
+    })),
     TE.chain(params =>
       TE.tryCatch(async () => verifySignatureHeader(params), E.toError)
     ),

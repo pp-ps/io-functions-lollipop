@@ -1,40 +1,63 @@
 import * as express from "express";
 
 import * as E from "fp-ts/Either";
+import { AlgorithmTypes } from "@mattrglobal/http-signatures";
 
 import { HttpMessageSignatureMiddleware } from "../http_message_signature_middleware";
 import {
   aValidPayload,
-  validLollipopHeaders,
-  validMultisignatureHeaders
+  generateES256Key,
+  generateRSAKey,
+  getValidLollipopLCParamsHeaders,
+  signEcdsaSha256WithEncoding,
+  signRsaPssSha256WithEncoding,
+  validLollipopLCParamsHeaders,
+  withIoSignLollipopSignature,
+  withLollipopSignature
 } from "../../../__mocks__/lollipopSignature.mock";
-import {
-  aFiscalCode,
-  aValidSha512AssertionRef
-} from "../../../__mocks__/lollipopPubKey.mock";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { AssertionTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/lollipop/AssertionType";
+import { aValidSha512AssertionRef } from "../../../__mocks__/lollipopPubKey.mock";
+
+const baseReq = ({
+  app: {
+    get: () => ({
+      bindings: {
+        req: { rawBody: JSON.stringify(aValidPayload) }
+      }
+    })
+  },
+  url:
+    "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
+  method: "POST",
+  body: aValidPayload
+} as unknown) as express.Request;
 
 describe("HttpMessageSignatureMiddleware - Success", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test(`GIVEN a request with a signature
   WHEN the signature is valid, encoding is 'ieee-p1363' and alg is 'ecdsa-p256-sha256'
   THEN the middleware return true`, async () => {
+    const data = await generateES256Key();
+
     const mockReq = ({
-      app: {
-        get: () => ({
-          bindings: {
-            req: { rawBody: JSON.stringify(aValidPayload) }
-          }
-        })
-      },
-      headers: validLollipopHeaders,
-      url:
-        "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
-      method: "POST",
-      body: aValidPayload
+      ...baseReq,
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const res = await HttpMessageSignatureMiddleware()(mockReq);
+    const mockReqWithSignedParams = await withLollipopSignature(
+      data.thumbprintSha256,
+      "a nonce",
+      AlgorithmTypes["ecdsa-p256-sha256"],
+      data.privateKeyJwk,
+      signEcdsaSha256WithEncoding("ieee-p1363")
+    )(mockReq);
+
+    const res = await HttpMessageSignatureMiddleware()(mockReqWithSignedParams);
 
     expect(res).toMatchObject(E.right(true));
   });
@@ -42,55 +65,61 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
   test(`GIVEN a request with a signature
   WHEN the signature is valid, encoding is 'ieee-p1363' and alg is 'rsa-pss-sha256'
   THEN the middleware return true`, async () => {
+    const data = await generateRSAKey();
+
     const mockReq = ({
-      app: {
-        get: () => ({
-          bindings: {
-            req: { rawBody: JSON.stringify(aValidPayload) }
-          }
-        })
-      },
-      headers: {
-        ...validLollipopHeaders,
-        ["x-pagopa-lollipop-assertion-ref"]:
-          "sha256-A3OhKGLYwSvdJ2txHi_SGQ3G-sHLh2Ibu91ErqFx_58",
-        ["x-pagopa-lollipop-public-key"]:
-          "eyJrZXlfb3BzIjpbInZlcmlmeSJdLCJleHQiOnRydWUsImt0eSI6IlJTQSIsIm4iOiJ2dHAwT3p5aGhsSUh2YjFmR0pKVERJSUtVVmtKcTJrOEJuekNJVThhbFdXWnd6bExVUERUUU55OW1CdUFVWndLZUdEam8xSlBuUjJXQzhWLTlOSVkxZzVUYlg5SGJnZk9rd3YzTVl1V0xhZUVBZmdfT0FFTEJjNjhxV0JZdTdxWXpjSlpPZ3dTdWZRNmxidUlFNXhrcnMtY3Fpc08zMGpFQmF0QjNReXJQZEdid0pXOEJ4bTBqQTZlN1NWcDd3NzUtYkdGeElhMkNDOTNuSWl4ZTNMRnNhRU5yX0lnYlNNM2NDcG00VEFYZHVGc1dHWjU2SkdHYkZBak5hV2s3VDJwMU9qd2owX0RVNzZIRUpEWGdNSkp4b3NtaE9GajdUZE95aE0zTVpWSUFUcEswYkZBdFZpcWk1WGxaTUpXY2FscmJpSkNHTjdBdzV2anBTdkpsOTVkVVRuR1ZTQlZXQ1gyVm9hb2FEVV9sTVNUYkw5Sm5HVlZzX3Ywb3dOR0lELVpHNXQ5Yk9ZYWt4MWJjWWN6ZzcyQVd1V3RHTXFtWDFSSDEwTGlEam10NDh0Yml3Q254ZGVRaGFYa19wNVk0bzFpcnpQWG5nUzVJWWlqZXVXdjlzM2hCY3hGQTRPYURGdjRURkoxVExiRGluUmpfa1hCdjEyWDNLRE9iYWNFdDVLcGVsNUluNlZxZHBNNWVFZnZ0WDU4U0Z2bDktTmphb29PZjZUeUJsOEtVdTZOTmc2OXNYQVFRVnBzdXhpaDl3NzA5RVRObWx1M2tZc21iTWt3MVRGM3hnRmxJSDh2SnI2WWJ6ajFxcDJ1djJaYkFtYXBNLUd1NVRTYUNOSzZKbVpvLV95UVA5dDFGOWZldmUxYzFHZWlvdEtXLUpDalRmYnNodkZ0M1V3eUdyOCIsImUiOiJBUUFCIiwiYWxnIjoiUFM1MTIifQ",
-        Signature:
-          "sig1=:LaN4n+miIZDzPHSV1CwFM/M+qzp0InLYlfxKfOC8b+VMv4q9leZSQcGwLC7uLpvdn4o8q9+LKc6zPbsD6NWtJclbwVLBXJKmpI7OzPkHJhho809JPHiFeQ49o/YfLXGKSlGp0kYmpP6KwsFivkuH54+/I5s5PDJacpQ5J2/j6MeFZH2arft9Kg5ZSOBZdG4EpvAxOrmje8bzIbaptb2DSxdX9YfNiYf6fuMjDnGOVAa3nz8z135tyvPj5tP8P2MKRDKVc2L1sUfpTIJ9HSjcEx6cxhBXdPwozdtVy/we7QXBl+c9fHzCytk3aNlaPh1B10MCwuKQiky8M1GCR1BMC5pIkhXenOcvj7hNkTe1FEwkvLWHCYdJzNLD8ERbTfsKEM1CZt7I5fMBr0/mitOJZ2GBIOnhZZya0oFnR5br22zvXoJL8lS1ajp3Wt3EXSdliDloy5LDOPqxAEH5nXInfxDaYQgZuLWa0I2oLmSr/DlW/KqX0KVCtoJXdwxJjhBS/ZRTdC0u2WmcE0QA0YXeJfUWaU8KS1Nx+Lbz22xEu7kNGTh7r8cmtVzl5bybtpvMUZ7dqNgoW5mcaCUDjeQOinRsugVWVTowTPjJWXW+8cV9LeBJRq4oc9HzoLQDfn/HGoMFpi79pZQIzNFBE3Jpdoouu392AqmEebzEgm2838A=:",
-        ["Signature-Input"]:
-          'sig1=("content-digest" "x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1678814391;nonce="aNonce";alg="rsa-pss-sha256";keyid="sha256-A3OhKGLYwSvdJ2txHi_SGQ3G-sHLh2Ibu91ErqFx_58"'
-      },
-      url:
-        "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
-      method: "POST",
-      body: aValidPayload
+      ...baseReq,
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const res = await HttpMessageSignatureMiddleware()(mockReq);
+    const mockReqWithSignedParams = await withLollipopSignature(
+      data.thumbprintSha256,
+      "a nonce",
+      "rsa-pss-sha256",
+      data.privateKeyJwk,
+      signRsaPssSha256WithEncoding("ieee-p1363")
+    )(mockReq);
 
+    const res = await HttpMessageSignatureMiddleware()(mockReqWithSignedParams);
     expect(res).toMatchObject(E.right(true));
   });
 
   test(`GIVEN a request with a multi-signature
   WHEN all the signatures are valid, encoding is 'ieee-p1363' and alg is 'ecdsa-p256-sha256'
   THEN the middleware return true`, async () => {
+    const data = await generateES256Key();
+
     const mockReq = ({
-      app: {
-        get: () => ({
-          bindings: {
-            req: { rawBody: JSON.stringify(aValidPayload) }
-          }
-        })
-      },
-      headers: validMultisignatureHeaders,
-      url:
-        "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
-      method: "POST",
-      body: aValidPayload
+      ...baseReq,
+      headers: {
+        ...getValidLollipopLCParamsHeaders(
+          data.assertionRefSha256,
+          data.encodedPubKey
+        ),
+        "X-io-sign-qtspclauses": "a value"
+      }
     } as unknown) as express.Request;
 
-    const res = await HttpMessageSignatureMiddleware()(mockReq);
+    const alg = AlgorithmTypes["ecdsa-p256-sha256"];
+    const mockReqWith2ndSignedParams = await withIoSignLollipopSignature(
+      data.thumbprintSha256,
+      "a nonce",
+      alg,
+      data.privateKeyJwk,
+      signEcdsaSha256WithEncoding("ieee-p1363")
+    )(mockReq);
+    const mockReqWithSignedParams = await withLollipopSignature(
+      data.thumbprintSha256,
+      "another nonce",
+      alg,
+      data.privateKeyJwk,
+      signEcdsaSha256WithEncoding("ieee-p1363")
+    )(mockReqWith2ndSignedParams);
+
+    const res = await HttpMessageSignatureMiddleware()(mockReqWithSignedParams);
 
     expect(res).toMatchObject(E.right(true));
   });
@@ -98,36 +127,26 @@ describe("HttpMessageSignatureMiddleware - Success", () => {
   test(`GIVEN a request with a signature
   WHEN the signature is valid, encoding is 'der' and alg is 'ecdsa-p256-sha256'
   THEN the middleware return true`, async () => {
+    const data = await generateES256Key();
+
     const mockReq = ({
-      app: {
-        get: () => ({
-          bindings: {
-            req: { rawBody: JSON.stringify(aValidPayload) }
-          }
-        })
-      },
-      headers: {
-        ["x-pagopa-lollipop-assertion-ref"]:
-          "sha256-HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M",
-        ["x-pagopa-lollipop-assertion-type"]: AssertionTypeEnum.SAML,
-        ["x-pagopa-lollipop-user-id"]: aFiscalCode,
-        ["x-pagopa-lollipop-public-key"]:
-          "eyJrdHkiOiJFQyIsInkiOiJNdkVCMENsUHFnTlhrNVhIYm9xN1hZUnE2TnJTQkFTVmZhT2wzWnAxQmJzPSIsImNydiI6IlAtMjU2IiwieCI6InF6YTQzdGtLTnIrYWlTZFdNL0Q1cTdxMElmV3lZVUFIVEhSNng3dFByZEU9In0",
-        ["x-pagopa-lollipop-auth-jwt"]: "aValidJWT" as NonEmptyString,
-        "x-pagopa-lollipop-original-method": "POST",
-        "x-pagopa-lollipop-original-url":
-          "https://api-app.io.pagopa.it/first-lollipop/sign",
-        "content-digest":
-          "sha-256=:cpyRqJ1VhoVC+MSs9fq4/4wXs4c46EyEFriskys43Zw=:",
-        "signature-input": `sig1=("x-pagopa-lollipop-original-method" "x-pagopa-lollipop-original-url");created=1681473980;nonce="aNonce";alg="ecdsa-p256-sha256";keyid="sha256-HiNolL87UYKQfaKISwIzyWY4swKPUzpaOWJCxaHy89M"`,
-        signature: `sig1=:MEUCIFiZHxuLhk2Jlt46E5kbB8hCx7fN7QeeAj2gaSK3Y+WzAiEAtggj3Jwu8RbTGdNmsDix2zymh0gKwKxoPlolL7j6VTg=:`
-      },
-      url: "https://api-app.io.pagopa.it/first-lollipop/sign",
-      method: "POST",
-      body: aValidPayload
+      ...baseReq,
+      headers: getValidLollipopLCParamsHeaders(
+        data.assertionRefSha256,
+        data.encodedPubKey
+      )
     } as unknown) as express.Request;
 
-    const res = await HttpMessageSignatureMiddleware()(mockReq);
+    const mockReqWithSignedParams = await withLollipopSignature(
+      data.thumbprintSha256,
+      "a nonce",
+      AlgorithmTypes["ecdsa-p256-sha256"],
+      data.privateKeyJwk,
+      signEcdsaSha256WithEncoding("der")
+    )(mockReq);
+
+    const res = await HttpMessageSignatureMiddleware()(mockReqWithSignedParams);
+
     expect(res).toMatchObject(E.right(true));
   });
 });
@@ -136,25 +155,24 @@ describe("HttpMessageSignatureMiddleware - Failures", () => {
   test(`GIVEN a request with a signature
   WHEN the keyid is different from the assertion ref
   THEN the middleware return false`, async () => {
+    const data = await generateES256Key();
+
     const mockReq = ({
-      app: {
-        get: () => ({
-          bindings: {
-            req: { rawBody: JSON.stringify(aValidPayload) }
-          }
-        })
-      },
+      ...baseReq,
       headers: {
-        ...validLollipopHeaders,
+        ...validLollipopLCParamsHeaders,
         ["x-pagopa-lollipop-assertion-ref"]: aValidSha512AssertionRef
-      },
-      url:
-        "https://io-p-weu-lollipop-fn.azurewebsites.net/api/v1/first-lollipop-consumer",
-      method: "POST",
-      body: aValidPayload
+      }
     } as unknown) as express.Request;
 
-    const res = await HttpMessageSignatureMiddleware()(mockReq);
+    const mockReqWithSignedParams = await withLollipopSignature(
+      data.thumbprintSha256,
+      "a nonce",
+      AlgorithmTypes["ecdsa-p256-sha256"],
+      data.privateKeyJwk,
+      signEcdsaSha256WithEncoding("ieee-p1363")
+    )(mockReq);
+    const res = await HttpMessageSignatureMiddleware()(mockReqWithSignedParams);
 
     expect(res).toMatchObject(
       E.left(
