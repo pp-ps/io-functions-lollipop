@@ -1,0 +1,16 @@
+name: Renovate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Self-host Renovate
+        uses: renovatebot/renovate-action@v40.1.0
+        with:
+          command: "renovate"
+          renovate-config: "renovate-config.json"
