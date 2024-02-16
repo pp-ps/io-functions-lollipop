@@ -2,6 +2,9 @@
     "extends": [
         "config:best-practices"
     ],
+    "repositories": [
+        "pp-ps/io-functions-lollipop"
+    ],
     "packageRules": [
         {
             "matchDepTypes": [
