@@ -2,9 +2,11 @@
     "extends": [
         "config:best-practices"
     ],
+    "platform": "github",
     "repositories": [
         "pp-ps/io-functions-lollipop"
     ],
+    "onboarding": false,
     "packageRules": [
         {
             "matchDepTypes": [
