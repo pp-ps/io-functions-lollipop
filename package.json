@@ -79,7 +79,7 @@
     "ulid": "^2.3.0",
     "winston": "^3.2.1",
     "xml-crypto": "^2.1.5",
-    "xmldom": "^0.6.0"
+    "@xmldom/xmldom": "^0.7.5"
   },
   "resolutions": {
     "handlebars": "~4.5.3"
